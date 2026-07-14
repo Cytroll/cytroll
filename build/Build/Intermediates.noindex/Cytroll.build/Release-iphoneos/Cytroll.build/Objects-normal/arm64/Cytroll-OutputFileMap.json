@@ -1,0 +1,126 @@
+{
+  "" : {
+    "const-values" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary.swiftconstvalues",
+    "dependencies" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary.d",
+    "diagnostics" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary.dia",
+    "emit-module-dependencies" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary-emit-module.dia",
+    "pch" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary.swiftdeps"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/Package.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Package.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Package.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Package.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/QueueManager.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/QueueManager.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/QueueManager.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/QueueManager.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/RepositoryManager.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/RepositoryManager.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/RepositoryManager.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/RepositoryManager.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/SileoBackend/AptIndexParser.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/AptIndexParser.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/AptIndexParser.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/AptIndexParser.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/SileoBackend/DependencyResolver.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/DependencyResolver.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/DependencyResolver.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/DependencyResolver.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/SileoBackend/DpkgStatusParser.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/DpkgStatusParser.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/DpkgStatusParser.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/DpkgStatusParser.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/Source.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Source.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Source.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Source.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/TransactionManager.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/TransactionManager.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/TransactionManager.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/TransactionManager.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Core/BackupManager.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/BackupManager.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/BackupManager.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/BackupManager.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Core/BootstrapManager.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/BootstrapManager.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/BootstrapManager.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/BootstrapManager.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Core/ConsoleManager.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ConsoleManager.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ConsoleManager.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ConsoleManager.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Core/CytrollCoreBridge.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/CytrollCoreBridge.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/CytrollCoreBridge.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/CytrollCoreBridge.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Core/JailbreakUtilities.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/JailbreakUtilities.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/JailbreakUtilities.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/JailbreakUtilities.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/CytrollApp.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/CytrollApp.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/CytrollApp.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/CytrollApp.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Themes/ThemeManager.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ThemeManager.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ThemeManager.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ThemeManager.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/UI/ChangesView.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ChangesView.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ChangesView.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ChangesView.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/UI/ContentView.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/UI/HomeView.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/HomeView.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/HomeView.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/HomeView.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/UI/PackagesTabView.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/PackagesTabView.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/PackagesTabView.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/PackagesTabView.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/UI/SettingsView.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/SettingsView.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/UI/SourcesView.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/SourcesView.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/SourcesView.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/SourcesView.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/Cytroll/UI/ViewModels/PackagesViewModel.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/PackagesViewModel.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/PackagesViewModel.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/PackagesViewModel.o"
+  },
+  "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

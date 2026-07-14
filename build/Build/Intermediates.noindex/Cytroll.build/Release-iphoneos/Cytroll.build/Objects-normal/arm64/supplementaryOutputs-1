@@ -1,0 +1,12 @@
+{
+  "/Users/s/Desktop/root/Cytroll/Cytroll/Backend/SileoBackend/AptIndexParser.swift" : {
+    "abi-baseline-json" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll.abi.json",
+    "const-values" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary.swiftconstvalues",
+    "dependencies" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary.d",
+    "diagnostics" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-primary.dia",
+    "objc-header" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll-Swift.h",
+    "swiftdoc" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll.swiftdoc",
+    "swiftmodule" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll.swiftmodule",
+    "swiftsourceinfo" : "/Users/s/Desktop/root/Cytroll/build/Build/Intermediates.noindex/Cytroll.build/Release-iphoneos/Cytroll.build/Objects-normal/arm64/Cytroll.swiftsourceinfo"
+  }
+}

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>12</integer>
+	<key>logs</key>
+	<dict>
+		<key>3E2C7969-A568-425F-B4BA-63F02C9C392A</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>3E2C7969-A568-425F-B4BA-63F02C9C392A.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>22</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>5</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Cytroll project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Cytroll</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building project Cytroll with scheme Cytroll and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>805753879.75398302</real>
+			<key>timeStoppedRecording</key>
+			<real>805754228.57513297</real>
+			<key>title</key>
+			<string>Building project Cytroll with scheme Cytroll and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>3E2C7969-A568-425F-B4BA-63F02C9C392A</string>
+		</dict>
+	</dict>
+</dict>
+</plist>
