@@ -50,9 +50,22 @@ public struct PackageRow: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(package.name)
-                    .font(.headline)
-                    .foregroundColor(theme.textPrimary)
+                HStack(spacing: 6) {
+                    Text(package.name)
+                        .font(.headline)
+                        .foregroundColor(theme.textPrimary)
+                    
+                    if package.isBroken {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption2)
+                    } else if package.isInstalled {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.caption2)
+                    }
+                }
+                
                 Text("\(package.version) • \(package.author)")
                     .font(.caption)
                     .foregroundColor(theme.textSecondary)
@@ -60,29 +73,40 @@ public struct PackageRow: View {
                     .font(.caption2)
                     .foregroundColor(theme.textSecondary.opacity(0.8))
                     .lineLimit(1)
+                
+                if let source = package.sourceURL {
+                    Text(source)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundColor(theme.accent.opacity(0.8))
+                }
             }
             Spacer()
             
             Menu {
-                Button(action: { onQueueAction(.install) }) {
-                    Label("Install", systemImage: "arrow.down.circle")
+                if !package.isInstalled {
+                    Button(action: { onQueueAction(.install) }) {
+                        Label("Install", systemImage: "arrow.down.circle")
+                    }
+                } else {
+                    Button(action: { onQueueAction(.reinstall) }) {
+                        Label("Reinstall", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    Button(role: .destructive, action: { onQueueAction(.remove) }) {
+                        Label("Remove", systemImage: "trash")
+                    }
                 }
-                Button(action: { onQueueAction(.upgrade) }) {
-                    Label("Upgrade", systemImage: "arrow.up.circle")
-                }
-                Button(action: { onQueueAction(.reinstall) }) {
-                    Label("Reinstall", systemImage: "arrow.triangle.2.circlepath")
-                }
-                Button(role: .destructive, action: { onQueueAction(.remove) }) {
-                    Label("Remove", systemImage: "trash")
-                }
+                // Upgrade option could be conditionally added here if version comparison is implemented
             } label: {
-                Text("GET")
+                Text(package.isInstalled ? "MODIFY" : "GET")
                     .font(.caption.bold())
                     .padding(.horizontal, 14)
                     .padding(.vertical, 6)
-                    .background(theme.accent)
-                    .foregroundColor(.white)
+                    .background(package.isInstalled ? theme.cardBackground : theme.accent)
+                    .foregroundColor(package.isInstalled ? theme.accent : .white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(theme.accent, lineWidth: package.isInstalled ? 1 : 0)
+                    )
                     .cornerRadius(12)
             }
         }

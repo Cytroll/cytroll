@@ -56,7 +56,16 @@ public final class DpkgStatusParser {
             if name.isEmpty { name = id }
             
             if !id.isEmpty {
-                let pkg = Package(id: id, name: name, version: version, author: author, architecture: architecture, description: description)
+                let pkg = Package(
+                    id: id, 
+                    name: name, 
+                    version: version, 
+                    author: author, 
+                    architecture: architecture, 
+                    description: description,
+                    isInstalled: true,
+                    isBroken: !isInstalled // If it passed the guard but is not 'install ok installed', it's broken
+                )
                 installedPackages.append(pkg)
             }
         }

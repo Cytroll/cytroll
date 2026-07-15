@@ -24,33 +24,33 @@ public final class PackagesViewModel: ObservableObject {
         // Background parsing to ensure UI does not freeze during heavy IO parsing
         DispatchQueue.global(qos: .userInitiated).async {
             // Load installed packages from the dpkg status file natively
-            var loaded = DpkgStatusParser.shared.parseInstalledPackages()
+            let installedPackages = DpkgStatusParser.shared.parseInstalledPackages()
             
             // Add packages from the APT repos natively
             let repoPackages = AptIndexParser.shared.parseRepoPackages()
-            loaded.append(contentsOf: repoPackages)
             
-            // Remove duplicates by ID (e.g., if a package is both installed and in a repo)
-            var uniqueDict = [String: Package]()
-            for pkg in loaded {
-                uniqueDict[pkg.id] = pkg
+            // Merge logic: preserve installed state, but inject sourceURL from repo if available
+            var finalDict = [String: Package]()
+            
+            // 1. Add repo packages first
+            for pkg in repoPackages {
+                finalDict[pkg.id] = pkg
             }
-            let uniquePackages = Array(uniqueDict.values)
             
-            // If the status file doesn't exist (e.g. running on simulator), fallback to safe mock data
-            let finalData = uniquePackages.isEmpty ? self.getFallbackMockData() : uniquePackages
+            // 2. Override/Update with installed packages
+            for var installedPkg in installedPackages {
+                if let repoPkg = finalDict[installedPkg.id] {
+                    // If it's in a repo, borrow its sourceURL so we know where it came from
+                    installedPkg.sourceURL = repoPkg.sourceURL
+                }
+                finalDict[installedPkg.id] = installedPkg
+            }
+            
+            let finalPackages = Array(finalDict.values)
             
             DispatchQueue.main.async {
-                self.packages = finalData.sorted { $0.name.lowercased() < $1.name.lowercased() }
+                self.packages = finalPackages.sorted { $0.name.lowercased() < $1.name.lowercased() }
             }
         }
-    }
-    
-    private func getFallbackMockData() -> [Package] {
-        return [
-            Package(id: "org.coolstar.sileo", name: "Sileo", version: "2.5", author: "Sileo Team", architecture: "iphoneos-arm64", description: "A modern, fast, and beautiful package manager."),
-            Package(id: "com.spark.snowboard", name: "SnowBoard", version: "1.5.21", author: "SparkDev", architecture: "iphoneos-arm64", description: "A lightweight spiritual successor to WinterBoard."),
-            Package(id: "space.ellekit.mac", name: "ElleKit", version: "1.0", author: "evelyne", architecture: "iphoneos-arm64", description: "A modern tweak injector for iOS 15+ rootless.")
-        ]
     }
 }

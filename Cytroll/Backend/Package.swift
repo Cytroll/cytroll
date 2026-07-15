@@ -14,12 +14,16 @@ public struct Package: Identifiable, Hashable, Codable {
     public let author: String
     public let architecture: String
     public let description: String
-    public let sourceURL: String?
+    public var sourceURL: String?
+    
+    // UI State flags
+    public var isInstalled: Bool = false
+    public var isBroken: Bool = false
     
     // The action assigned to this package in the queue
     public var action: QueueAction? = nil
     
-    public init(id: String, name: String, version: String, author: String, architecture: String, description: String, sourceURL: String? = nil, action: QueueAction? = nil) {
+    public init(id: String, name: String, version: String, author: String, architecture: String, description: String, sourceURL: String? = nil, isInstalled: Bool = false, isBroken: Bool = false, action: QueueAction? = nil) {
         self.id = id
         self.name = name
         self.version = version
@@ -27,6 +31,8 @@ public struct Package: Identifiable, Hashable, Codable {
         self.architecture = architecture
         self.description = description
         self.sourceURL = sourceURL
+        self.isInstalled = isInstalled
+        self.isBroken = isBroken
         self.action = action
     }
     
