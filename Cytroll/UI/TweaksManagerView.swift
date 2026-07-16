@@ -62,7 +62,11 @@ public struct TweaksManagerView: View {
         }
         .fileImporter(
             isPresented: $showingSideloadImporter,
-            allowedContentTypes: [UTType(filenameExtension: "dylib") ?? .data, .data],
+            // iOS rarely tags .dylib files with a matching UTType, so a
+            // narrow filter (filenameExtension: "dylib") greys them out
+            // in the Files picker. Allow any item, then enforce .dylib
+            // in handleSideloadPicked.
+            allowedContentTypes: Self.sideloadImportTypes,
             allowsMultipleSelection: false
         ) { result in
             handleSideloadPicked(result)
@@ -133,7 +137,7 @@ public struct TweaksManagerView: View {
     private var sideloadedSection: some View {
         Section(
             header: Text("Sideloaded Dylibs").foregroundColor(themeManager.currentTheme.textSecondary),
-            footer: Text("A dylib picked directly from Files, without needing an apt package. You always pick its target app manually.")
+            footer: Text("Pick any .dylib from Files (Filza, On My iPhone, iCloud, etc.). Only .dylib is accepted. You always pick its target app manually.")
         ) {
             ForEach(sideloadStore.items) { item in
                 VStack(alignment: .leading, spacing: 8) {
@@ -345,6 +349,21 @@ public struct TweaksManagerView: View {
         return sideloadStore.item(withID: id)?.asTweakInfo
     }
 
+    /// Prefer the declared Cytroll dylib UTI + Apple's Mach-O dylib type,
+    /// but always include `.item` so unknown/untagged .dylib files stay
+    /// tappable in the document picker on real devices.
+    private static var sideloadImportTypes: [UTType] {
+        var types: [UTType] = [.item, .data]
+        if let cytroll = UTType("com.cytroll.dylib") {
+            types.insert(cytroll, at: 0)
+        }
+        if let byExt = UTType(filenameExtension: "dylib", conformingTo: .data) {
+            types.insert(byExt, at: 0)
+        }
+        types.insert(.dynamicLibrary, at: 0)
+        return types
+    }
+
     private func handleSideloadPicked(_ result: Result<[URL], Error>) {
         switch result {
         case .failure(let error):
@@ -352,6 +371,12 @@ public struct TweaksManagerView: View {
             showingInjectionError = true
         case .success(let urls):
             guard let url = urls.first else { return }
+            let ext = url.pathExtension.lowercased()
+            guard ext == "dylib" else {
+                lastInjectionErrorMessage = "Please pick a .dylib file (got “\(url.lastPathComponent)”)."
+                showingInjectionError = true
+                return
+            }
             DispatchQueue.global(qos: .userInitiated).async {
                 let outcome = sideloadStore.add(from: url, displayName: nil)
                 DispatchQueue.main.async {
