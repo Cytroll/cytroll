@@ -17,10 +17,24 @@ dist/
 *.tipa
 *.deb
 
-# Fetched/compiled tools — not source, downloaded by Scripts/fetch-binaries.sh
-# or compiled by build.sh. Keep the folder's README for documentation.
+# Fetched/compiled tools live under Binaries/. By default we still ignore
+# them — casual clones don't need them and they'd bloat every diff. But
+# the pre-fetched/pre-compiled toolchain that's actually shipped alongside
+# the app (ldid, tar, zstd, Procursus bootstrap archives) IS committed
+# explicitly by name via the negation rules below, so `git pull` on the
+# build host is enough — no need to re-run Scripts/fetch-binaries.sh.
 Binaries/*
 !Binaries/README.md
+!Binaries/ldid
+!Binaries/tar
+!Binaries/zstd
+!Binaries/cytrollhelper
+!Binaries/insert_dylib
+!Binaries/bootstrap_1800.tar.zst
+!Binaries/bootstrap_1900.tar.zst
 
-# Bootstrap archives are large binary blobs; never commit them
+# Generic archive rule (keep after the negations above so it doesn't
+# override them for the two committed Procursus bootstraps).
 *.tar.zst
+!Binaries/bootstrap_1800.tar.zst
+!Binaries/bootstrap_1900.tar.zst
