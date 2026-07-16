@@ -7,6 +7,27 @@ public final class CytrollCoreBridge {
 
     public init() {}
 
+    /// Makes sure `helperPath` is executable without ever *lowering* its
+    /// current permissions. Blindly forcing `0o755` here would silently
+    /// strip an existing setuid bit (`0o4000`) on the one install path
+    /// where it's actually meaningful — the `.deb`/`postinst` route, which
+    /// runs with real dpkg-level root and can legitimately `chown root` +
+    /// `chmod 4755` this file (see `packaging/debian/postinst`). The
+    /// primary TrollStore `.tipa` path never has that bit set in the first
+    /// place, so this is a no-op there either way.
+    private func ensureHelperExecutable(at path: String, fm: FileManager) {
+        if let attrs = try? fm.attributesOfItem(atPath: path),
+           let existing = attrs[.posixPermissions] as? Int {
+            let hasSetuid = (existing & 0o4000) != 0
+            let hasOwnerExec = (existing & 0o100) != 0
+            guard !hasOwnerExec else { return } // already executable — leave setuid/group/other bits exactly as-is
+            let target = hasSetuid ? 0o4755 : 0o755
+            try? fm.setAttributes([.posixPermissions: target], ofItemAtPath: path)
+        } else {
+            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: path)
+        }
+    }
+
     /// Executes a command via cytrollhelper (TrollStore root proxy).
     @discardableResult
     public func executeCommand(executable: String, arguments: [String]) -> Bool {
@@ -17,7 +38,7 @@ public final class CytrollCoreBridge {
         let fm = FileManager.default
 
         if fm.fileExists(atPath: helperPath) {
-            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: helperPath)
+            ensureHelperExecutable(at: helperPath, fm: fm)
             process.executableURL = URL(fileURLWithPath: helperPath)
             process.arguments = [executable] + arguments
         } else {
@@ -80,7 +101,7 @@ public final class CytrollCoreBridge {
         let fm = FileManager.default
 
         if fm.fileExists(atPath: helperPath) {
-            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: helperPath)
+            ensureHelperExecutable(at: helperPath, fm: fm)
             process.executableURL = URL(fileURLWithPath: helperPath)
             process.arguments = [executable] + arguments
         } else {

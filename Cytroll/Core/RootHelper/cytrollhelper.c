@@ -120,11 +120,20 @@ static int is_allowed_executable(const char *path) {
     if (is_blocked_system_path(path)) return 0;
     if (contains_path_traversal(path)) return 0;
 
+    /* NOTE: deliberately WITHOUT a trailing slash — see the comment above
+     * kBundleApplicationRoots for why a trailing slash here breaks
+     * path_has_prefix()'s boundary check. This exact bug (present here
+     * until now) meant bare "/bin/rm", "/bin/mv", "/bin/cp", "/bin/mkdir"
+     * and "/usr/bin/..." targets were silently rejected as "not
+     * allowlisted" — breaking bootstrap removal, the entire per-app
+     * injection pipeline, tweak enable/disable, and backup cleanup, all
+     * of which invoke these via CytrollCoreBridge as bare executable
+     * paths (not under /var/jb). */
     static const char *allowed_prefixes[] = {
         "/var/jb",
         "/private/var/jb",
-        "/bin/",
-        "/usr/bin/",
+        "/bin",
+        "/usr/bin",
         NULL
     };
 
@@ -190,21 +199,28 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /* Drop to group 0 before uid 0 (standard privilege-elevation order);
-     * this binary must be installed setuid-root (owner root, mode 4755)
-     * for these calls to actually succeed. */
-    if (setgid(0) != 0) {
-        perror("cytrollhelper: setgid failed");
-        return 1;
-    }
-    if (setuid(0) != 0) {
-        perror("cytrollhelper: setuid failed");
-        return 1;
-    }
-
-    if (getuid() != 0 || getgid() != 0) {
-        fprintf(stderr, "cytrollhelper: failed to obtain root privileges.\n");
-        return 1;
+    /* Best-effort privilege escalation, NOT a hard requirement.
+     *
+     * This only actually succeeds when the binary on disk is owned by
+     * root with the setuid bit set (mode 4755) — which requires something
+     * that already has root to set up (e.g. this package's own `postinst`
+     * when installed via an existing rootless jailbreak's dpkg). The
+     * primary TrollStore `.tipa` install path can never grant that: a
+     * TrollStore app (and therefore this very file) is always owned by
+     * `mobile`, and chown-to-root itself requires pre-existing root —
+     * there is no legitimate way for an app to grant itself real root on
+     * a device that isn't already jailbroken.
+     *
+     * That's fine: standard rootless convention keeps /var/jb (and
+     * everything under it) owned by `mobile` specifically so an
+     * unsandboxed-but-unprivileged TrollStore process can manage it
+     * without needing real root at all. So: try to escalate — it helps
+     * on top of an existing jailbreak/manually-rooted setup — but fall
+     * through and execv as whatever we already are if it doesn't take.
+     * The allowlist checks above already apply regardless of the
+     * resulting privilege level. */
+    if (setgid(0) != 0 || setuid(0) != 0) {
+        fprintf(stderr, "cytrollhelper: could not escalate to root — continuing as uid %d (fine for mobile-owned /var/jb).\n", getuid());
     }
 
     execv(target, &argv[1]);

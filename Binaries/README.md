@@ -18,8 +18,8 @@ Bootstrap archives can be **downloaded on-device** (preferred, keeps IPA small) 
 
 | File | iOS version |
 |------|-------------|
-| `bootstrap_1800.tar.zst` | iOS 15.0 – 16.x |
-| `bootstrap_1900.tar.zst` | iOS 17.0+ |
+| `bootstrap_1800.tar.zst` | iOS 15.x |
+| `bootstrap_1900.tar.zst` | iOS 16.0+ |
 
 Run `Scripts/fetch-binaries.sh` on macOS to download tools and bootstrap archives.
 
