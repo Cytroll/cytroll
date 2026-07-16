@@ -18,7 +18,12 @@ public enum ControlFieldParser {
     /// Streams a multi-record control file, invoking `perform` once per
     /// record with that record's `[FieldName: Value]` fields. Continuation
     /// lines (starting with whitespace) are folded into the previous field.
-    public static func forEachBlock(in content: String, perform: ([String: String]) -> Void) {
+    ///
+    /// `perform` is `@escaping` because it's captured inside the
+    /// `enumerateLines` closure — the compiler can't see that
+    /// `enumerateLines` invokes its own body synchronously and never
+    /// stashes it anywhere.
+    public static func forEachBlock(in content: String, perform: @escaping ([String: String]) -> Void) {
         var fields: [String: String] = [:]
         var lastKey: String?
         var hasContent = false
