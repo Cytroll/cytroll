@@ -6,10 +6,19 @@ import CryptoKit
 public final class BootstrapManager: NSObject, ObservableObject {
     public static let shared = BootstrapManager()
 
-    @Published public private(set) var isBootstrapInstalled: Bool = false
+    /// `/var/jb` is the shared rootless prefix (also used by Dopamine and
+    /// other modern jailbreaks). `health` distinguishes "no environment",
+    /// "a real working one already there — just use it" and "present but
+    /// missing pieces — needs repair, not a destructive reinstall".
+    @Published public private(set) var health: RootlessPaths.BootstrapHealth = .missing
     @Published public private(set) var isInstalling: Bool = false
     @Published public private(set) var progress: Double = 0.0
     @Published public private(set) var logs: [String] = []
+
+    /// Kept for existing call sites — `true` for both `.healthy` and
+    /// `.broken` (a directory is present either way); use `health` directly
+    /// when the distinction matters.
+    public var isBootstrapInstalled: Bool { health != .missing }
 
     private let coreBridge = CytrollCoreBridge.shared
     private let console = ConsoleManager.shared
@@ -29,10 +38,31 @@ public final class BootstrapManager: NSObject, ObservableObject {
     }
 
     public func checkBootstrapStatus() {
-        isBootstrapInstalled = RootlessPaths.isBootstrapInstalled
+        health = RootlessPaths.bootstrapHealth
     }
 
+    /// Fresh install — only meaningful (and only destructive) when nothing
+    /// usable exists yet. Wipes `/var/jb` first since there's nothing worth
+    /// preserving.
     public func setupBootstrap(version: BootstrapVersion) {
+        beginInstall(version: version, preserveExisting: false)
+    }
+
+    /// Repairs an incomplete/corrupted environment by re-extracting the
+    /// bootstrap tree over what's there — never deletes `/var/jb` first, so
+    /// installed packages/tweaks and their config survive. `tar -xpf`
+    /// simply overwrites/fills in whatever the archive contains.
+    public func repairBootstrap(version: BootstrapVersion = BootstrapVersion.forCurrentOS()) {
+        beginInstall(version: version, preserveExisting: true)
+    }
+
+    public func autoSetupBootstrap() {
+        setupBootstrap(version: BootstrapVersion.forCurrentOS())
+    }
+
+    // MARK: - Installation pipeline
+
+    private func beginInstall(version: BootstrapVersion, preserveExisting: Bool) {
         guard !isInstalling else { return }
 
         backgroundTaskID = UIApplication.shared.beginBackgroundTask {
@@ -47,25 +77,21 @@ public final class BootstrapManager: NSObject, ObservableObject {
         }
 
         Task {
-            await installBootstrap(version: version)
+            await installBootstrap(version: version, preserveExisting: preserveExisting)
         }
     }
 
-    public func autoSetupBootstrap() {
-        setupBootstrap(version: BootstrapVersion.forCurrentOS())
-    }
-
-    // MARK: - Installation pipeline
-
-    private func installBootstrap(version: BootstrapVersion) async {
-        console.log("Starting Procursus rootless bootstrap (\(version.displayName))...")
+    private func installBootstrap(version: BootstrapVersion, preserveExisting: Bool) async {
+        console.log(preserveExisting
+            ? "Repairing rootless environment (\(version.displayName)) in place..."
+            : "Starting Procursus rootless bootstrap (\(version.displayName))...")
 
         guard let archiveURL = await acquireBootstrapArchive(version: version) else {
             failBootstrap(reason: "Could not obtain bootstrap archive for \(version.fileName).")
             return
         }
 
-        await extractBootstrap(from: archiveURL, version: version)
+        await extractBootstrap(from: archiveURL, version: version, preserveExisting: preserveExisting)
     }
 
     /// Remote download first, bundled fallback second.
@@ -116,12 +142,12 @@ public final class BootstrapManager: NSObject, ObservableObject {
         }
     }
 
-    private func extractBootstrap(from archiveURL: URL, version: BootstrapVersion) async {
+    private func extractBootstrap(from archiveURL: URL, version: BootstrapVersion, preserveExisting: Bool) async {
         let fm = FileManager.default
 
         try? fm.setAttributes([.posixPermissions: 0o644], ofItemAtPath: archiveURL.path)
 
-        if fm.fileExists(atPath: RootlessPaths.prefix) {
+        if !preserveExisting, fm.fileExists(atPath: RootlessPaths.prefix) {
             console.log("Removing existing \(RootlessPaths.prefix)...")
             _ = coreBridge.executeCommand(executable: "/bin/rm", arguments: ["-rf", RootlessPaths.prefix])
         }
@@ -184,7 +210,6 @@ public final class BootstrapManager: NSObject, ObservableObject {
             self.progress = 1.0
             self.console.log("Bootstrap ready at \(RootlessPaths.effectivePrefix)")
             self.isInstalling = false
-            self.isBootstrapInstalled = true
             self.checkBootstrapStatus()
             self.endBackgroundImmunity()
         }
@@ -240,7 +265,7 @@ public final class BootstrapManager: NSObject, ObservableObject {
         DispatchQueue.main.async {
             self.isInstalling = false
             self.progress = 0.0
-            self.isBootstrapInstalled = false
+            self.checkBootstrapStatus()
             self.endBackgroundImmunity()
         }
     }

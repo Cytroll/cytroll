@@ -14,7 +14,7 @@ public struct HomeView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        if !bootstrapManager.isBootstrapInstalled {
+                        if bootstrapManager.health != .healthy {
                             bootstrapGatekeeper
                                 .transition(.scale.combined(with: .opacity))
                         } else {
@@ -25,7 +25,7 @@ public struct HomeView: View {
                         }
                     }
                     .padding()
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: bootstrapManager.isBootstrapInstalled)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: bootstrapManager.health)
                 }
             }
             .navigationTitle("Cytroll")
@@ -52,58 +52,83 @@ public struct HomeView: View {
             }
             
             HStack(spacing: 12) {
-                Image(systemName: bootstrapManager.isBootstrapInstalled ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundColor(bootstrapManager.isBootstrapInstalled ? .green : .red)
+                Image(systemName: statusIconName)
+                    .foregroundColor(statusColor)
                     .font(.title3)
                 
-                Text(bootstrapManager.isBootstrapInstalled ? "Ready (\(RootlessPaths.effectivePrefix))" : "Not Found / Missing")
+                Text(statusText)
                     .font(.headline)
                     .foregroundColor(themeManager.currentTheme.textPrimary)
             }
             .padding(.vertical, 10)
             
-            if !bootstrapManager.isBootstrapInstalled {
-                if bootstrapManager.isInstalling {
-                    VStack(spacing: 16) {
-                        ProgressView(value: bootstrapManager.progress, total: 1.0)
-                            .tint(themeManager.currentTheme.accent)
-                            .scaleEffect(1.2, anchor: .center)
-                        
-                        Text("\(Int(bootstrapManager.progress * 100))%")
-                            .font(.headline)
-                            .foregroundColor(themeManager.currentTheme.accent)
-                        
-                        Text(bootstrapManager.logs.last ?? "Connecting to server...")
-                            .font(.caption.monospaced())
-                            .foregroundColor(themeManager.currentTheme.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
+            if bootstrapManager.isInstalling {
+                VStack(spacing: 16) {
+                    ProgressView(value: bootstrapManager.progress, total: 1.0)
+                        .tint(themeManager.currentTheme.accent)
+                        .scaleEffect(1.2, anchor: .center)
+                    
+                    Text("\(Int(bootstrapManager.progress * 100))%")
+                        .font(.headline)
+                        .foregroundColor(themeManager.currentTheme.accent)
+                    
+                    Text(bootstrapManager.logs.last ?? "Connecting to server...")
+                        .font(.caption.monospaced())
+                        .foregroundColor(themeManager.currentTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+                .padding(.top, 10)
+            } else if bootstrapManager.health == .broken {
+                // Directory exists but is missing pieces (interrupted
+                // extraction, etc.) — repair in place, never offer the
+                // destructive fresh-install path here since that would
+                // wipe out whatever is salvageable (including someone
+                // else's environment, e.g. Dopamine's).
+                VStack(spacing: 16) {
+                    Text("A rootless environment exists at \(RootlessPaths.effectivePrefix) but is missing core files (apt/dpkg or its database). Repairing re-extracts the bootstrap tree in place without deleting anything.")
+                        .font(.caption)
+                        .foregroundColor(themeManager.currentTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+
+                    Button(action: {
+                        withAnimation {
+                            bootstrapManager.repairBootstrap()
+                        }
+                    }) {
+                        Text("Repair Environment")
+                            .font(.headline.bold())
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.orange)
+                            .cornerRadius(14)
+                            .shadow(color: Color.orange.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
-                    .padding(.top, 10)
-                } else {
-                    VStack(spacing: 16) {
-                        Picker("Select Version", selection: $selectedBootstrapVersion) {
-                            ForEach(BootstrapVersion.allCases) { version in
-                                Text(version.rawValue).tag(version)
-                            }
+                }
+            } else {
+                VStack(spacing: 16) {
+                    Picker("Select Version", selection: $selectedBootstrapVersion) {
+                        ForEach(BootstrapVersion.allCases) { version in
+                            Text(version.rawValue).tag(version)
                         }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal, 4)
-                        
-                        Button(action: {
-                            withAnimation {
-                                bootstrapManager.setupBootstrap(version: selectedBootstrapVersion)
-                            }
-                        }) {
-                            Text("Download & Install Bootstrap")
-                                .font(.headline.bold())
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(themeManager.currentTheme.accent)
-                                .cornerRadius(14)
-                                .shadow(color: themeManager.currentTheme.accent.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 4)
+                    
+                    Button(action: {
+                        withAnimation {
+                            bootstrapManager.setupBootstrap(version: selectedBootstrapVersion)
                         }
+                    }) {
+                        Text("Download & Install Bootstrap")
+                            .font(.headline.bold())
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(themeManager.currentTheme.accent)
+                            .cornerRadius(14)
+                            .shadow(color: themeManager.currentTheme.accent.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
                 }
             }
@@ -111,8 +136,41 @@ public struct HomeView: View {
         .padding(24)
         .glassCard(theme: themeManager.currentTheme)
     }
+
+    private var statusIconName: String {
+        switch bootstrapManager.health {
+        case .healthy: return "checkmark.circle.fill"
+        case .broken: return "exclamationmark.triangle.fill"
+        case .missing: return "xmark.circle.fill"
+        }
+    }
+
+    private var statusColor: Color {
+        switch bootstrapManager.health {
+        case .healthy: return .green
+        case .broken: return .orange
+        case .missing: return .red
+        }
+    }
+
+    private var statusText: String {
+        switch bootstrapManager.health {
+        case .healthy: return "Ready (\(RootlessPaths.effectivePrefix))"
+        case .broken: return "Detected but Incomplete"
+        case .missing: return "Not Found / Missing"
+        }
+    }
     
     // MARK: - Smart Dashboard Subview
+    @StateObject private var queueManager = QueueManager.shared
+    @StateObject private var diagnostics = DiagnosticsManager.shared
+    @StateObject private var packageIndex = PackageIndexStore.shared
+
+    /// Smart Maintenance and a queued install/remove transaction both drive
+    /// dpkg — running them at the same time risks two dpkg processes
+    /// fighting over its lock (or a package half-configured mid-transaction).
+    private var isSystemBusy: Bool { queueManager.isProcessing || diagnostics.isRepairing }
+
     private var smartDashboard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("SMART DASHBOARD")
@@ -122,31 +180,41 @@ public struct HomeView: View {
             
             HStack(spacing: 16) {
                 DashboardMetric(title: "Status", value: "Active", icon: "checkmark.circle.fill", color: .green)
-                DashboardMetric(title: "Packages", value: "142", icon: "shippingbox.fill", color: themeManager.currentTheme.accent)
+                DashboardMetric(title: "Packages", value: "\(packageIndex.installedPackages.count)", icon: "shippingbox.fill", color: themeManager.currentTheme.accent)
             }
             
             Button(action: {
-                // Smart Maintenance: dpkg --configure -a
-                let bridge = CytrollCoreBridge()
-                let _ = bridge.executeDpkg(arguments: ["--configure", "-a"])
+                guard !isSystemBusy else { return }
+                diagnostics.configureDpkg { _ in }
             }) {
                 HStack {
                     Image(systemName: "wrench.and.screwdriver.fill")
                         .font(.title3)
-                    Text("Smart Maintenance")
+                    Text(diagnostics.isRepairing ? "Running..." : "Smart Maintenance")
                         .font(.headline)
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.bold))
+                    if !isSystemBusy {
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.bold))
+                    }
                 }
                 .foregroundColor(themeManager.currentTheme.accent)
                 .padding()
                 .background(themeManager.currentTheme.accent.opacity(0.15))
                 .cornerRadius(12)
             }
+            .disabled(isSystemBusy)
+            .opacity(isSystemBusy ? 0.6 : 1.0)
+
+            if queueManager.isProcessing {
+                Text("A package transaction is running — maintenance will be available once it finishes.")
+                    .font(.caption2)
+                    .foregroundColor(themeManager.currentTheme.textSecondary)
+            }
         }
         .padding(20)
         .glassCard(theme: themeManager.currentTheme)
+        .onAppear { packageIndex.ensureLoaded() }
     }
     
     // MARK: - Activity Log Subview

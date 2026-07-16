@@ -104,4 +104,33 @@ public enum RootlessPaths {
             fm.fileExists(atPath: candidate, isDirectory: &isDir) && isDir.boolValue
         }
     }
+
+    // MARK: - Environment health
+
+    /// `/var/jb` is the same standard rootless prefix used by Dopamine and
+    /// other modern jailbreaks — not something Cytroll necessarily created
+    /// itself. A bare directory-exists check can't tell "a real, working
+    /// Procursus environment (ours or someone else's)" apart from "an empty
+    /// or half-extracted folder left over from a failed install". `health`
+    /// actually probes for the binaries/database a rootless env needs.
+    public enum BootstrapHealth: Equatable {
+        /// No `/var/jb` at all — offer a fresh install.
+        case missing
+        /// Directory exists and the core apt/dpkg toolchain + database are
+        /// present — safe to use as-is, regardless of who created it.
+        case healthy
+        /// Directory exists but is missing pieces a working environment
+        /// needs (interrupted extraction, corrupted install, etc.) —
+        /// should be repaired in place, never silently wiped.
+        case broken
+    }
+
+    public static var bootstrapHealth: BootstrapHealth {
+        guard isBootstrapInstalled else { return .missing }
+
+        let fm = FileManager.default
+        let requiredPaths = [dpkg, aptGet, dpkgStatus]
+        let allPresent = requiredPaths.allSatisfy { fm.fileExists(atPath: $0) }
+        return allPresent ? .healthy : .broken
+    }
 }

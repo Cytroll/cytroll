@@ -4,7 +4,12 @@ import UniformTypeIdentifiers
 public struct SettingsView: View {
     @StateObject private var themeManager = ThemeManager.shared
     @StateObject private var diagnostics = DiagnosticsManager.shared
+    @StateObject private var queueManager = QueueManager.shared
     @State private var tweaksEnabled: Bool = JailbreakUtilities.shared.areTweaksEnabled()
+
+    /// Diagnostics/removal and a queued install/remove transaction both
+    /// drive dpkg/apt directly — never let them run at the same time.
+    private var isSystemBusy: Bool { queueManager.isProcessing || diagnostics.isRepairing }
     @State private var showingRemoveAlert = false
     @State private var isRemoving = false
     
@@ -128,6 +133,7 @@ public struct SettingsView: View {
                     // MARK: Advanced Diagnostics
                     Section(header: Text("System Diagnostics").foregroundColor(themeManager.currentTheme.textSecondary)) {
                         Button(action: {
+                            guard !isSystemBusy else { return }
                             showingDiagnosticsConsole = true
                             diagnostics.runFullDiagnostics { _ in }
                         }) {
@@ -136,21 +142,30 @@ public struct SettingsView: View {
                                 Text(diagnostics.isRepairing ? "Repairing System..." : "Run Advanced Diagnostics")
                             }
                         }
-                        .disabled(diagnostics.isRepairing)
+                        .disabled(isSystemBusy)
+
+                        if queueManager.isProcessing {
+                            Text("A package transaction is running — wait for it to finish first.")
+                                .font(.caption2)
+                                .foregroundColor(themeManager.currentTheme.textSecondary)
+                        }
                     }
                     .listRowBackground(themeManager.currentTheme.cardBackground.opacity(0.6))
                     .foregroundColor(.orange)
                     
                     // MARK: Danger Zone
                     Section(header: Text("Danger Zone").foregroundColor(.red)) {
-                        Button(action: { showingRemoveAlert = true }) {
+                        Button(action: {
+                            guard !isSystemBusy else { return }
+                            showingRemoveAlert = true
+                        }) {
                             HStack {
                                 Image(systemName: "trash.fill")
                                 Text(isRemoving ? "Removing Environment..." : "Remove Jailbreak")
                             }
                         }
                         .foregroundColor(.red)
-                        .disabled(isRemoving)
+                        .disabled(isRemoving || isSystemBusy)
                     }
                     .listRowBackground(themeManager.currentTheme.cardBackground.opacity(0.6))
                 }
@@ -205,6 +220,8 @@ public struct SettingsView: View {
                     isRemoving = true
                     JailbreakUtilities.shared.removeEnvironment { success in
                         isRemoving = false
+                        BootstrapManager.shared.checkBootstrapStatus()
+                        PackageIndexStore.shared.refresh()
                         JailbreakUtilities.shared.userspaceReboot()
                     }
                 }
