@@ -1,21 +1,22 @@
 #!/bin/sh
 set -e
 
-HELPER="/var/mobile/.lara_jb/Applications/Cytroll.app/Binaries/cytrollhelper"
+HELPER="/var/jb/Applications/Cytroll.app/Binaries/cytrollhelper"
 
 # dpkg itself is only ever running as root when this script executes (it's
-# what lets it write into the rootless prefix at all), so this is the one
-# point in the whole pipeline that can legitimately grant cytrollhelper
-# real setuid-root: chown to root requires root, which the TrollStore
-# .tipa install path (build.sh) never has — this .deb path (installed on
-# top of an existing Cytroll/rootless dpkg) is the only one that does.
+# what lets it write into /var/jb at all), so this is the one point in the
+# whole pipeline that can legitimately grant cytrollhelper real setuid-root:
+# chown to root requires root, which the TrollStore .tipa install path
+# (build.sh) never has — this .deb path (installed on top of an existing
+# rootless jailbreak's dpkg) is the only one that does. Standard practice
+# for any Cydia/Procursus package shipping a privileged helper binary.
 if [ -f "$HELPER" ]; then
     chown root:wheel "$HELPER" || true
     chmod 4755 "$HELPER" || true
 fi
 
-if [ -x /var/mobile/.lara_jb/usr/bin/uicache ]; then
-    /var/mobile/.lara_jb/usr/bin/uicache -a || true
+if [ -x /var/jb/usr/bin/uicache ]; then
+    /var/jb/usr/bin/uicache -a || true
 fi
 
 exit 0

@@ -148,7 +148,7 @@ public struct HomeView: View {
                 ) {
                     showingBootstrapConsole = true
                     // No local archive — download from Procursus, then extract
-                    // into /var/mobile/.lara_jb (full real install, not cache-only).
+                    // into /var/jb (full real install, not cache-only).
                     bootstrapManager.setupBootstrap(version: selectedBootstrapVersion)
                 }
                 Text("Downloads from apt.procurs.us, then installs into \(RootlessPaths.prefix)")

@@ -10,6 +10,9 @@ public final class RepositoryManager: ObservableObject {
     private var sourcesDir: String { RootlessPaths.sourcesListDir }
     private var cytrollSourcesFile: String { RootlessPaths.cytrollSourcesFile }
     private let coreBridge = CytrollCoreBridge.shared
+    /// Avoid re-walking sources.list.d on every Home/Sources appear.
+    private var lastEssentialEnsureAt: Date?
+    private let essentialEnsureCooldown: TimeInterval = 30
     
     private init() {
         loadSources()
@@ -105,7 +108,14 @@ public final class RepositoryManager: ObservableObject {
     /// Sources-tab appear and after bootstrap — only runs `apt-get update`
     /// when something was actually added.
     public func ensureEssentialSources(completion: (() -> Void)? = nil) {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        let now = Date()
+        if let last = lastEssentialEnsureAt, now.timeIntervalSince(last) < essentialEnsureCooldown {
+            completion?()
+            return
+        }
+        lastEssentialEnsureAt = now
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
             guard let self = self else { completion?(); return }
             let added = self.ensureEssentialSourcesSync()
             if added {

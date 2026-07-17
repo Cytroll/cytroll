@@ -151,10 +151,15 @@ public final class InjectionRecordStore: ObservableObject {
     /// since it reuses one `InstalledAppScanner` pass for every record.
     public func refreshNeedsReapplyFlags() {
         ioQueue.async {
+            // No injection history → nothing to drift-check; skip a full
+            // installed-apps scan (saves CPU/battery on cold launches).
+            let snapshot = self.records
+            guard !snapshot.isEmpty else { return }
+
             let installedApps = InstalledAppScanner.shared.scanInstalledApps()
             let versionByBundleID = Dictionary(uniqueKeysWithValues: installedApps.map { ($0.bundleID, $0.version) })
 
-            var current = self.records
+            var current = snapshot
             var changed = false
 
             for i in current.indices {

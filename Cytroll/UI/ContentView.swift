@@ -46,13 +46,17 @@ public struct ContentView: View {
         .fullScreenCover(isPresented: $showingTerminal) {
             TerminalView(showingTerminal: $showingTerminal, queueManager: queueManager, themeManager: themeManager)
         }
+        .onAppear {
+            // Initial launch: scenePhase onChange does not fire for the
+            // already-active value, so we still need one call here.
+            if scenePhase == .active {
+                AutoReinjectService.shared.evaluateOnForeground()
+            }
+        }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
                 AutoReinjectService.shared.evaluateOnForeground()
             }
-        }
-        .onAppear {
-            AutoReinjectService.shared.evaluateOnForeground()
         }
     }
     

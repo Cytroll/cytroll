@@ -1,7 +1,6 @@
 # Packaging
 
-Debian package layout for installing Cytroll into the Cytroll rootless prefix
-(`/var/mobile/.lara_jb`).
+Debian package layout for installing Cytroll into the Procursus rootless prefix.
 
 ## Layout
 
@@ -17,9 +16,9 @@ packaging/
 Installed paths on device:
 
 ```
-/var/mobile/.lara_jb/Applications/Cytroll.app/
-/var/mobile/.lara_jb/usr/bin/          # (future CLI tools)
-/var/mobile/.lara_jb/etc/apt/sources.list.d/cytroll.list
+/var/jb/Applications/Cytroll.app/
+/var/jb/usr/bin/          # (future CLI tools)
+/var/jb/etc/apt/sources.list.d/cytroll.list
 ```
 
 ## Build
@@ -35,5 +34,5 @@ Output: `dist/com.cytroll.app_1.0.0_iphoneos-arm64.deb`
 Install on device (after bootstrap):
 
 ```bash
-/var/mobile/.lara_jb/usr/bin/dpkg -i com.cytroll.app_*.deb
+/var/jb/usr/bin/dpkg -i com.cytroll.app_*.deb
 ```

@@ -46,15 +46,20 @@ for tool in tar ldid zstd; do
     fi
 done
 
-# Optional — BootstrapManager tries a remote download first and only falls
-# back to a bundled archive if that fails, so these are never required,
-# but bundle them when present for a fully offline-capable install.
-for archive in bootstrap_1800.tar.zst bootstrap_1900.tar.zst; do
-    if [ -f "Binaries/$archive" ]; then
-        cp "Binaries/$archive" "Payload/Cytroll.app/Binaries/$archive"
-        echo "       [+] Bundled $archive for offline bootstrap fallback"
-    fi
-done
+# Bootstrap archives are ~50–100MB each. Do NOT ship them in the .tipa by
+# default — Cytroll downloads from apt.procurs.us on demand, then deletes
+# the cache after a successful install. Opt in only when you need offline:
+#   BUNDLE_BOOTSTRAP=1 ./build.sh
+if [ "${BUNDLE_BOOTSTRAP:-0}" = "1" ]; then
+    for archive in bootstrap_1800.tar.zst bootstrap_1900.tar.zst; do
+        if [ -f "Binaries/$archive" ]; then
+            cp "Binaries/$archive" "Payload/Cytroll.app/Binaries/$archive"
+            echo "       [+] Bundled $archive (BUNDLE_BOOTSTRAP=1)"
+        fi
+    done
+else
+    echo "       [=] Skipping bundled bootstrap archives (keeps .tipa small; download on device)"
+fi
 
 echo "    -> Compiling cytrollhelper from C source..."
 xcrun -sdk iphoneos clang -arch arm64 -o Payload/Cytroll.app/Binaries/cytrollhelper Cytroll/Core/RootHelper/cytrollhelper.c

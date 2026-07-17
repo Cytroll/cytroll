@@ -6,10 +6,10 @@ import CryptoKit
 public final class BootstrapManager: NSObject, ObservableObject {
     public static let shared = BootstrapManager()
 
-    /// Rootless prefix is `/var/mobile/.lara_jb`. `health` distinguishes
-    /// "no environment", "a real working one already there — just use it"
-    /// and "present but missing pieces — needs repair, not a destructive
-    /// reinstall".
+    /// `/var/jb` is the shared rootless prefix (Dopamine / Sileo /
+    /// Procursus). `health` distinguishes "no environment", "a real working
+    /// one already there — just use it" and "present but missing pieces —
+    /// needs repair, not a destructive reinstall".
     @Published public private(set) var health: RootlessPaths.BootstrapHealth = .missing
     @Published public private(set) var isInstalling: Bool = false
     /// True while a download-only (no extract) job is running.
@@ -178,6 +178,9 @@ public final class BootstrapManager: NSObject, ObservableObject {
             if downloaded.path != dest.path {
                 try? fm.removeItem(at: downloaded)
             }
+            // Keep only this version's archive — drop the other suite's file.
+            purgeOtherCachedArchives(keeping: version)
+            scrubStaleBootstrapTemps()
             console.log("Bootstrap archive saved — ready to Bootstrap.")
             DispatchQueue.main.async {
                 self.progress = 1.0
@@ -256,7 +259,7 @@ public final class BootstrapManager: NSObject, ObservableObject {
     }
 
     /// Full real path: try local, else download from Procursus then extract
-    /// into `/var/mobile/.lara_jb`.
+    /// into `/var/jb`.
     private func beginInstallWithNetworkFallback(version: BootstrapVersion, preserveExisting: Bool) {
         guard !isBusy else {
             console.log("Bootstrap ignored — already busy.")
@@ -327,12 +330,52 @@ public final class BootstrapManager: NSObject, ObservableObject {
             if downloaded.path != dest.path {
                 try? fm.removeItem(at: downloaded)
             }
+            purgeOtherCachedArchives(keeping: version)
             DispatchQueue.main.async { self.refreshLocalArchiveAvailability() }
             console.log("Cached \(version.fileName) (\(byteCount(of: dest)))")
             return dest
         } catch {
             console.log("Cache write failed (\(error.localizedDescription)) — using temp file.")
             return downloaded
+        }
+    }
+
+    /// Deletes every cached bootstrap tarball except `keeping` (saves tens of MB).
+    private func purgeOtherCachedArchives(keeping version: BootstrapVersion) {
+        let fm = FileManager.default
+        for other in BootstrapVersion.allCases where other != version {
+            let url = cachedArchiveURL(for: other)
+            if fm.fileExists(atPath: url.path) {
+                try? fm.removeItem(at: url)
+                console.log("Removed unused cache \(other.fileName)")
+            }
+        }
+    }
+
+    /// After a successful install the archive is no longer needed on-device.
+    public func purgeAllBootstrapCaches() {
+        let fm = FileManager.default
+        for version in BootstrapVersion.allCases {
+            let url = cachedArchiveURL(for: version)
+            if fm.fileExists(atPath: url.path) {
+                try? fm.removeItem(at: url)
+            }
+        }
+        scrubStaleBootstrapTemps()
+        DispatchQueue.main.async { self.refreshLocalArchiveAvailability() }
+        console.log("Cleared bootstrap download cache (frees app Documents/Support space).")
+    }
+
+    private func scrubStaleBootstrapTemps() {
+        let fm = FileManager.default
+        let tmp = fm.temporaryDirectory
+        guard let items = try? fm.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil) else { return }
+        for url in items {
+            let name = url.lastPathComponent
+            if name.hasPrefix("cytroll-bootstrap-")
+                || name.hasPrefix("bootstrap_") && (name.hasSuffix(".tar.zst") || name.hasSuffix(".tar")) {
+                try? fm.removeItem(at: url)
+            }
         }
     }
 
@@ -402,14 +445,9 @@ public final class BootstrapManager: NSObject, ObservableObject {
 
         try? fm.setAttributes([.posixPermissions: 0o644], ofItemAtPath: archiveURL.path)
 
-        // Wipe destination prefix on fresh install (never leave a half tree).
-        if !preserveExisting {
-            for candidate in [RootlessPaths.prefix, RootlessPaths.privatePrefix] {
-                if fm.fileExists(atPath: candidate) {
-                    console.log("Removing existing \(candidate)...")
-                    _ = coreBridge.executeCommand(executable: "/bin/rm", arguments: ["-rf", candidate])
-                }
-            }
+        if !preserveExisting, fm.fileExists(atPath: RootlessPaths.prefix) {
+            console.log("Removing existing \(RootlessPaths.prefix)...")
+            _ = coreBridge.executeCommand(executable: "/bin/rm", arguments: ["-rf", RootlessPaths.prefix])
         }
 
         DispatchQueue.main.async { self.progress = 0.3 }
@@ -434,8 +472,7 @@ public final class BootstrapManager: NSObject, ObservableObject {
         }
 
         DispatchQueue.main.async { self.progress = 0.5 }
-        // Upstream archives still unpack as var/jb/... — we relocate next.
-        console.log("Extracting Procursus tree (temporary \(RootlessPaths.legacyProcursusPrefix))...")
+        console.log("Extracting Procursus tree to / (creates \(RootlessPaths.prefix))...")
 
         let extractOK = coreBridge.executeCommand(executable: tarPath, arguments: [
             "-xpf", tempTarPath, "-C", "/"
@@ -446,14 +483,6 @@ public final class BootstrapManager: NSObject, ObservableObject {
             failBootstrap(reason: "Failed to extract bootstrap tar archive.")
             return
         }
-
-        guard relocateExtractedBootstrap(preserveExisting: preserveExisting) else {
-            failBootstrap(reason: "Failed to relocate bootstrap to \(RootlessPaths.prefix).")
-            return
-        }
-
-        console.log("Rewriting legacy /var/jb paths inside \(RootlessPaths.prefix)...")
-        rewriteLegacyJBPaths(in: RootlessPaths.effectivePrefix)
 
         DispatchQueue.main.async { self.progress = 0.7 }
 
@@ -475,6 +504,9 @@ public final class BootstrapManager: NSObject, ObservableObject {
         // whatever (empty) state it held before the rootless env existed.
         PackageIndexStore.shared.refresh()
 
+        // Drop the multi‑MB download cache + temp tars — /var/jb is enough.
+        purgeAllBootstrapCaches()
+
         DispatchQueue.main.async {
             self.progress = 1.0
             self.console.log("Bootstrap ready at \(RootlessPaths.effectivePrefix)")
@@ -482,128 +514,6 @@ public final class BootstrapManager: NSObject, ObservableObject {
             self.checkBootstrapStatus()
             self.endBackgroundImmunity()
         }
-    }
-
-    /// Moves the temporary `/var/jb` tree created by the Procursus archive
-    /// into `/var/mobile/.lara_jb`, then deletes any leftover legacy path.
-    private func relocateExtractedBootstrap(preserveExisting: Bool) -> Bool {
-        let fm = FileManager.default
-        let dest = RootlessPaths.prefix
-        let sources = [
-            RootlessPaths.legacyProcursusPrivatePrefix,
-            RootlessPaths.legacyProcursusPrefix
-        ]
-
-        guard let source = sources.first(where: { fm.fileExists(atPath: $0) }) else {
-            // Archive may already have been transformed, or extract used dest.
-            if fm.fileExists(atPath: dest) || fm.fileExists(atPath: RootlessPaths.privatePrefix) {
-                console.log("Bootstrap already at \(dest)")
-                return true
-            }
-            console.log("ERROR: Extracted tree not found at \(RootlessPaths.legacyProcursusPrefix)")
-            return false
-        }
-
-        _ = coreBridge.executeCommand(executable: "/bin/mkdir", arguments: ["-p", "/var/mobile"])
-
-        if fm.fileExists(atPath: dest) || fm.fileExists(atPath: RootlessPaths.privatePrefix) {
-            if preserveExisting {
-                console.log("Merging \(source) into \(dest)...")
-                _ = coreBridge.executeCommand(executable: "/bin/mkdir", arguments: ["-p", dest])
-                let mergeOK = coreBridge.executeCommand(
-                    executable: "/bin/cp",
-                    arguments: ["-a", source + "/.", dest + "/"]
-                )
-                _ = coreBridge.executeCommand(executable: "/bin/rm", arguments: ["-rf", source])
-                guard mergeOK else { return false }
-            } else {
-                console.log("Replacing \(dest) with \(source)...")
-                _ = coreBridge.executeCommand(executable: "/bin/rm", arguments: ["-rf", dest])
-                _ = coreBridge.executeCommand(executable: "/bin/rm", arguments: ["-rf", RootlessPaths.privatePrefix])
-                let moved = coreBridge.executeCommand(executable: "/bin/mv", arguments: [source, dest])
-                guard moved else { return false }
-            }
-        } else {
-            console.log("Moving \(source) → \(dest)...")
-            let moved = coreBridge.executeCommand(executable: "/bin/mv", arguments: [source, dest])
-            guard moved else { return false }
-        }
-
-        // Never leave a legacy /var/jb behind.
-        for leftover in sources where fm.fileExists(atPath: leftover) {
-            console.log("Removing leftover \(leftover)...")
-            _ = coreBridge.executeCommand(executable: "/bin/rm", arguments: ["-rf", leftover])
-        }
-
-        return fm.fileExists(atPath: dest) || fm.fileExists(atPath: RootlessPaths.privatePrefix)
-    }
-
-    private static let pathRewriteExtensions: Set<String> = [
-        "sh", "bash", "zsh", "csh", "conf", "cfg", "list", "txt",
-        "in", "plist", "service", "py", "pl", "rb", "lua", "json", "xml"
-    ]
-
-    /// Rewrites `/var/jb` and `/private/var/jb` string references inside
-    /// text-like files under the relocated tree (prep_bootstrap.sh, apt
-    /// configs, dpkg metadata, etc.).
-    private func rewriteLegacyJBPaths(in root: String) {
-        let fm = FileManager.default
-        guard let enumerator = fm.enumerator(atPath: root) else { return }
-
-        var rewritten = 0
-        while let relative = enumerator.nextObject() as? String {
-            let full = root + "/" + relative
-            var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: full, isDirectory: &isDir), !isDir.boolValue else { continue }
-
-            let ext = (relative as NSString).pathExtension.lowercased()
-            let base = (relative as NSString).lastPathComponent
-            let looksText =
-                Self.pathRewriteExtensions.contains(ext) ||
-                ext.isEmpty && (base.hasSuffix("_bootstrap") || base.contains("bootstrap") || base == "status") ||
-                relative.contains("/dpkg/") ||
-                relative.contains("/apt/")
-
-            guard looksText else { continue }
-            guard rewriteLegacyJBPathsInFile(at: full) else { continue }
-            rewritten += 1
-        }
-
-        console.log("Rewrote legacy paths in \(rewritten) file(s).")
-    }
-
-    @discardableResult
-    private func rewriteLegacyJBPathsInFile(at path: String) -> Bool {
-        let fm = FileManager.default
-        guard let attrs = try? fm.attributesOfItem(atPath: path),
-              let size = attrs[.size] as? NSNumber,
-              size.intValue > 0,
-              size.intValue <= 2_000_000 else { return false }
-
-        guard let data = fm.contents(atPath: path), !data.isEmpty else { return false }
-        // Skip binaries (NUL in the first chunk).
-        let probe = data.prefix(8192)
-        if probe.contains(0) { return false }
-
-        guard var text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
-            return false
-        }
-
-        let before = text
-        // Longer private path first so we don't double-rewrite.
-        text = text.replacingOccurrences(
-            of: RootlessPaths.legacyProcursusPrivatePrefix,
-            with: RootlessPaths.privatePrefix
-        )
-        text = text.replacingOccurrences(
-            of: RootlessPaths.legacyProcursusPrefix,
-            with: RootlessPaths.prefix
-        )
-
-        guard text != before else { return false }
-        guard let out = text.data(using: .utf8) else { return false }
-        return (try? out.write(to: URL(fileURLWithPath: path), options: .atomic)) != nil
-            || fm.createFile(atPath: path, contents: out, attributes: nil)
     }
 
     private func runPrepBootstrapScript() {

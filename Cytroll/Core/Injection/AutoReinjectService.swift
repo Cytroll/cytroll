@@ -17,14 +17,28 @@ public final class AutoReinjectService: ObservableObject {
     private let injectionManager = AppInjectionManager.shared
     private let care = CytrollCareSettings.shared
     private let safeMode = AppSafeModeManager.shared
+    /// Coalesces onAppear + scenePhase.active (same cold launch) and rapid
+    /// app switches so we don't rescan installed apps every second.
+    private var lastEvaluateAt: Date?
+    private let evaluateCooldown: TimeInterval = 8
 
     private init() {}
 
     /// Refresh drift flags, then auto-fix when the preference is on.
+    /// Cheap when there are no injection records (no app scan).
     public func evaluateOnForeground() {
+        // Avoid overlapping work if the user flips apps quickly.
+        guard !isRunning else { return }
+        let now = Date()
+        if let last = lastEvaluateAt, now.timeIntervalSince(last) < evaluateCooldown {
+            return
+        }
+        lastEvaluateAt = now
+
         recordStore.refreshNeedsReapplyFlags()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             guard let self = self else { return }
+            guard !self.isRunning else { return }
             guard self.care.autoReinjectEnabled else { return }
             guard !self.pendingRecords().isEmpty else { return }
             self.reapplyAllPending(triggeredByUser: false)

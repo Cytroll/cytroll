@@ -5,6 +5,8 @@ final class BootstrapDownloadSession: NSObject, URLSessionDownloadDelegate {
     static let shared = BootstrapDownloadSession()
 
     private lazy var session: URLSession = {
+        // Default (foreground) config only — no background URLSession
+        // identifier, so iOS will not wake the app to finish downloads.
         let config = URLSessionConfiguration.default
         config.allowsCellularAccess = true
         config.timeoutIntervalForRequest = 60

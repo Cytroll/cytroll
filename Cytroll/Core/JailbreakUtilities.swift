@@ -66,27 +66,12 @@ public final class JailbreakUtilities {
     public func removeEnvironment(completion: @escaping (Bool) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
             ConsoleManager.shared.log("Removing \(RootlessPaths.prefix)...")
-            var success = self.bridge.executeCommand(
+            let success = self.bridge.executeCommand(
                 executable: "/bin/rm",
                 arguments: ["-rf", RootlessPaths.prefix]
             )
-            // Also clear the private path / any leftover legacy unpack dir.
-            _ = self.bridge.executeCommand(
-                executable: "/bin/rm",
-                arguments: ["-rf", RootlessPaths.privatePrefix]
-            )
-            _ = self.bridge.executeCommand(
-                executable: "/bin/rm",
-                arguments: ["-rf", RootlessPaths.legacyProcursusPrefix]
-            )
-            _ = self.bridge.executeCommand(
-                executable: "/bin/rm",
-                arguments: ["-rf", RootlessPaths.legacyProcursusPrivatePrefix]
-            )
             let gone = !FileManager.default.fileExists(atPath: RootlessPaths.prefix)
-                && !FileManager.default.fileExists(atPath: RootlessPaths.privatePrefix)
-            if gone { success = true }
-            DispatchQueue.main.async { completion(success) }
+            DispatchQueue.main.async { completion(success || gone) }
         }
     }
 }

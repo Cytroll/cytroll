@@ -16,7 +16,7 @@ import Foundation
 public struct AppPristineBackup: Codable, Equatable {
     public let bundleID: String
     /// Full path to the backed-up `.app` bundle copy, e.g.
-    /// `/var/mobile/.lara_jb/var/cytroll/backups/<bundleID>/<Name>.app`. Stable per
+    /// `/var/jb/var/cytroll/backups/<bundleID>/<Name>.app`. Stable per
     /// bundle ID — replaced in place (not versioned/timestamped) whenever
     /// a fresh pristine backup is taken.
     public let backupAppPath: String
