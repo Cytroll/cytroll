@@ -52,20 +52,53 @@ public enum BootstrapConfig {
     public static let defaultSourcesResourceName = "default-sources"
 
     public static func manifestEntry(for version: BootstrapVersion) -> BootstrapManifestEntry? {
-        guard let manifest = loadManifest() else { return nil }
-        return manifest.versions[version.rawValue]
+        if let manifest = loadManifest(), let entry = manifest.versions[version.rawValue] {
+            return entry
+        }
+        // Hardcoded Procursus URLs — always available even if the JSON
+        // resource failed to land in the .app bundle.
+        return fallbackManifestEntry(for: version)
+    }
+
+    /// Official Procursus rootless bootstrap tarballs.
+    public static func fallbackManifestEntry(for version: BootstrapVersion) -> BootstrapManifestEntry {
+        switch version {
+        case .ios15:
+            return BootstrapManifestEntry(
+                fileName: version.fileName,
+                url: "https://apt.procurs.us/bootstraps/1800/bootstrap-iphoneos-arm64.tar.zst",
+                sha256: nil,
+                size: nil
+            )
+        case .ios16Plus:
+            return BootstrapManifestEntry(
+                fileName: version.fileName,
+                url: "https://apt.procurs.us/bootstraps/1900/bootstrap-iphoneos-arm64.tar.zst",
+                sha256: nil,
+                size: nil
+            )
+        }
+    }
+
+    public static func remoteBootstrapURL(for version: BootstrapVersion) -> URL? {
+        URL(string: manifestEntry(for: version)?.url ?? fallbackManifestEntry(for: version).url)
     }
 
     public static func loadManifest() -> BootstrapManifest? {
-        guard let url = Bundle.main.url(
-            forResource: manifestResourceName,
-            withExtension: "json",
-            subdirectory: "Resources/Bootstrap"
-        ) ?? Bundle.main.url(forResource: manifestResourceName, withExtension: "json") else {
-            return nil
+        let candidates: [URL?] = [
+            Bundle.main.url(forResource: manifestResourceName, withExtension: "json", subdirectory: "Resources/Bootstrap"),
+            Bundle.main.url(forResource: manifestResourceName, withExtension: "json", subdirectory: "Bootstrap"),
+            Bundle.main.url(forResource: manifestResourceName, withExtension: "json"),
+        ]
+        for candidate in candidates {
+            guard let url = candidate,
+                  let data = try? Data(contentsOf: url),
+                  let manifest = try? JSONDecoder().decode(BootstrapManifest.self, from: data) else {
+                continue
+            }
+            return manifest
         }
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(BootstrapManifest.self, from: data)
+        return nil
     }
 
     public static func defaultSources(for version: BootstrapVersion) -> [String] {
@@ -136,11 +169,15 @@ public enum BootstrapConfig {
     }
 
     public static func bundledBootstrapURL(for version: BootstrapVersion) -> URL? {
-        Bundle.main.url(
-            forResource: version.fileName,
-            withExtension: nil,
-            subdirectory: "Binaries"
-        ) ?? Bundle.main.url(forResource: version.fileName, withExtension: nil)
+        // Prefer a direct path — Bundle.main.url(forResource: "foo.tar.zst")
+        // is unreliable with compound extensions on device.
+        let direct = RootlessPaths.bundledBinariesDir + "/" + version.fileName
+        if FileManager.default.fileExists(atPath: direct) {
+            return URL(fileURLWithPath: direct)
+        }
+        let base = "bootstrap_\(version.rawValue)"
+        return Bundle.main.url(forResource: base, withExtension: "tar.zst", subdirectory: "Binaries")
+            ?? Bundle.main.url(forResource: base, withExtension: "tar.zst")
     }
 
     public static func bundledToolPath(_ name: String) -> String? {

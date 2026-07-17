@@ -5,23 +5,24 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PKG_DIR="$ROOT/packaging"
 BUILD_DIR="$ROOT/build/deb"
 STAGING="$BUILD_DIR/staging"
+JB_PREFIX="var/mobile/.lara_jb"
 
 if [ ! -f "$ROOT/Cytroll.tipa" ] && [ ! -d "$ROOT/Payload/Cytroll.app" ]; then
     echo "[!] Run ./build.sh first to produce Cytroll.app / Cytroll.tipa"
     exit 1
 fi
 
-echo "[*] Building Cytroll .deb for Procursus (/var/jb)..."
+echo "[*] Building Cytroll .deb for Cytroll rootless (/$JB_PREFIX)..."
 
 rm -rf "$STAGING"
 mkdir -p "$STAGING/DEBIAN"
-mkdir -p "$STAGING/var/jb/Applications"
+mkdir -p "$STAGING/$JB_PREFIX/Applications"
 
 if [ -d "$ROOT/Payload/Cytroll.app" ]; then
-    cp -R "$ROOT/Payload/Cytroll.app" "$STAGING/var/jb/Applications/"
+    cp -R "$ROOT/Payload/Cytroll.app" "$STAGING/$JB_PREFIX/Applications/"
 else
     unzip -qo "$ROOT/Cytroll.tipa" -d "$BUILD_DIR/tipa_extract"
-    cp -R "$BUILD_DIR/tipa_extract/Payload/Cytroll.app" "$STAGING/var/jb/Applications/"
+    cp -R "$BUILD_DIR/tipa_extract/Payload/Cytroll.app" "$STAGING/$JB_PREFIX/Applications/"
 fi
 
 # Merge any optional static files (see packaging/layout/README.md)

@@ -34,7 +34,7 @@ public final class JailbreakUtilities {
     }
 
     /// Creates/removes the safe-mode flag via the root helper so the
-    /// toggle reflects disk state even when `/var/jb` isn't plain-writable
+    /// toggle reflects disk state even when the rootless prefix isn't plain-writable
     /// by the app process.
     public func setTweaksEnabled(_ enabled: Bool) {
         DispatchQueue.global(qos: .userInitiated).async {
@@ -66,12 +66,27 @@ public final class JailbreakUtilities {
     public func removeEnvironment(completion: @escaping (Bool) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
             ConsoleManager.shared.log("Removing \(RootlessPaths.prefix)...")
-            let success = self.bridge.executeCommand(
+            var success = self.bridge.executeCommand(
                 executable: "/bin/rm",
                 arguments: ["-rf", RootlessPaths.prefix]
             )
+            // Also clear the private path / any leftover legacy unpack dir.
+            _ = self.bridge.executeCommand(
+                executable: "/bin/rm",
+                arguments: ["-rf", RootlessPaths.privatePrefix]
+            )
+            _ = self.bridge.executeCommand(
+                executable: "/bin/rm",
+                arguments: ["-rf", RootlessPaths.legacyProcursusPrefix]
+            )
+            _ = self.bridge.executeCommand(
+                executable: "/bin/rm",
+                arguments: ["-rf", RootlessPaths.legacyProcursusPrivatePrefix]
+            )
             let gone = !FileManager.default.fileExists(atPath: RootlessPaths.prefix)
-            DispatchQueue.main.async { completion(success || gone) }
+                && !FileManager.default.fileExists(atPath: RootlessPaths.privatePrefix)
+            if gone { success = true }
+            DispatchQueue.main.async { completion(success) }
         }
     }
 }

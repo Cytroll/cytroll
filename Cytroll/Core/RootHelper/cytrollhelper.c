@@ -9,7 +9,8 @@
  * Security (rootless):
  *   - Allowlisted executables only
  *   - Blocks signed system volume (SSV) paths
- *   - Jailbreak state confined to /var/jb
+ *   - Jailbreak state confined to /var/mobile/.lara_jb
+ *   - Legacy /var/jb only as rm/mv/cp args during bootstrap relocate
  */
 
 static int path_has_prefix(const char *path, const char *prefix) {
@@ -52,9 +53,7 @@ static int contains_path_traversal(const char *path) {
  * already ends in '/' makes that boundary check look for a character
  * right after that slash (e.g. the first digit of a UUID directory name),
  * which is never '/' or '\0' for any real path, so the prefix would never
- * match ANY actual file. (Contrast with the "/var/jb" prefix a few lines
- * up, which has no trailing slash and works correctly for exactly this
- * reason — that inconsistency was the bug.)
+ * match ANY actual file.
  */
 static const char *kBundleApplicationRoots[] = {
     "/private/var/containers/Bundle/Application",
@@ -143,6 +142,31 @@ static int is_third_party_install_container_path(const char *path) {
     return 0;
 }
 
+static int is_lara_jb_path(const char *path) {
+    return path_has_prefix(path, "/var/mobile/.lara_jb") ||
+           path_has_prefix(path, "/private/var/mobile/.lara_jb");
+}
+
+static int is_mobile_path(const char *path) {
+    return path_has_prefix(path, "/var/mobile") ||
+           path_has_prefix(path, "/private/var/mobile");
+}
+
+/* Temporary Procursus unpack path — only for bootstrap relocate. */
+static int is_legacy_jb_path(const char *path) {
+    return path_has_prefix(path, "/var/jb") ||
+           path_has_prefix(path, "/private/var/jb");
+}
+
+static int is_relocate_tool(const char *exe) {
+    return strcmp(exe, "/bin/rm") == 0 ||
+           strcmp(exe, "/bin/mv") == 0 ||
+           strcmp(exe, "/bin/cp") == 0 ||
+           strcmp(exe, "/usr/bin/rm") == 0 ||
+           strcmp(exe, "/usr/bin/mv") == 0 ||
+           strcmp(exe, "/usr/bin/cp") == 0;
+}
+
 static int is_allowed_executable(const char *path) {
     if (!path || path[0] != '/') return 0;
     if (is_blocked_system_path(path)) return 0;
@@ -150,16 +174,10 @@ static int is_allowed_executable(const char *path) {
 
     /* NOTE: deliberately WITHOUT a trailing slash — see the comment above
      * kBundleApplicationRoots for why a trailing slash here breaks
-     * path_has_prefix()'s boundary check. This exact bug (present here
-     * until now) meant bare "/bin/rm", "/bin/mv", "/bin/cp", "/bin/mkdir"
-     * and "/usr/bin/..." targets were silently rejected as "not
-     * allowlisted" — breaking bootstrap removal, the entire per-app
-     * injection pipeline, tweak enable/disable, and backup cleanup, all
-     * of which invoke these via CytrollCoreBridge as bare executable
-     * paths (not under /var/jb). */
+     * path_has_prefix()'s boundary check. */
     static const char *allowed_prefixes[] = {
-        "/var/jb",
-        "/private/var/jb",
+        "/var/mobile/.lara_jb",
+        "/private/var/mobile/.lara_jb",
         "/bin",
         "/usr/bin",
         NULL
@@ -175,27 +193,33 @@ static int is_allowed_executable(const char *path) {
     return is_bundled_binary_path(path);
 }
 
-static int argument_targets_system(const char *arg) {
+/* Returns 1 when the argument is unsafe (should be blocked). */
+static int argument_targets_system(const char *exe, const char *arg) {
     if (!arg || arg[0] != '/') return 0;
     if (is_blocked_system_path(arg)) return 1;
     if (contains_path_traversal(arg)) return 1;
 
-    /* Procursus bootstrap extracts var/jb/ tree via tar -C / */
+    /* Procursus bootstrap extracts via tar -C / */
     if (strcmp(arg, "/") == 0) return 0;
 
-    /* Per-app tweak injection: allow cp/insert_dylib/ldid/chmod to touch
-     * paths strictly inside a third-party app's .app bundle. See
-     * is_third_party_app_bundle_path() for the exact structural rule. */
+    /* Cytroll rootless prefix */
+    if (is_lara_jb_path(arg)) return 0;
+
+    /* /var/mobile (Data containers, vault, .lara_jb parent, etc.) */
+    if (is_mobile_path(arg)) return 0;
+
+    /* Bootstrap relocate: allow rm/mv/cp against temporary /var/jb only */
+    if (is_relocate_tool(exe) && is_legacy_jb_path(arg)) return 0;
+
+    /* Per-app tweak injection */
     if (is_third_party_app_bundle_path(arg)) return 0;
 
     /* App Manager uninstall of a third-party install UUID container. */
     if (is_third_party_install_container_path(arg)) return 0;
 
-    /* Block /var subtree outside /var/jb */
-    if (path_has_prefix(arg, "/var/") && !path_has_prefix(arg, "/var/jb")) return 1;
+    /* Block remaining /var subtree */
+    if (path_has_prefix(arg, "/var/")) return 1;
     if (path_has_prefix(arg, "/private/var/") &&
-        !path_has_prefix(arg, "/private/var/jb") &&
-        !path_has_prefix(arg, "/private/var/mobile") &&
         !path_has_prefix(arg, "/private/var/tmp")) {
         return 1;
     }
@@ -204,8 +228,9 @@ static int argument_targets_system(const char *arg) {
 }
 
 static int validate_arguments(char *const args[]) {
+    const char *exe = args[0];
     for (int i = 0; args[i] != NULL; i++) {
-        if (argument_targets_system(args[i])) {
+        if (argument_targets_system(exe, args[i])) {
             fprintf(stderr, "cytrollhelper: blocked unsafe path: %s\n", args[i]);
             return 0;
         }
@@ -242,16 +267,15 @@ int main(int argc, char *argv[]) {
      * there is no legitimate way for an app to grant itself real root on
      * a device that isn't already jailbroken.
      *
-     * That's fine: standard rootless convention keeps /var/jb (and
-     * everything under it) owned by `mobile` specifically so an
-     * unsandboxed-but-unprivileged TrollStore process can manage it
+     * That's fine: Cytroll keeps /var/mobile/.lara_jb owned by `mobile`
+     * so an unsandboxed-but-unprivileged TrollStore process can manage it
      * without needing real root at all. So: try to escalate — it helps
      * on top of an existing jailbreak/manually-rooted setup — but fall
      * through and execv as whatever we already are if it doesn't take.
      * The allowlist checks above already apply regardless of the
      * resulting privilege level. */
     if (setgid(0) != 0 || setuid(0) != 0) {
-        fprintf(stderr, "cytrollhelper: could not escalate to root — continuing as uid %d (fine for mobile-owned /var/jb).\n", getuid());
+        fprintf(stderr, "cytrollhelper: could not escalate to root — continuing as uid %d (fine for mobile-owned .lara_jb).\n", getuid());
     }
 
     execv(target, &argv[1]);

@@ -3,7 +3,7 @@ import Foundation
 /// Procursus-compatible environment variables for rootless APT/dpkg execution.
 public enum RootlessEnvironment {
 
-    /// Builds the process environment for privileged commands running inside `/var/jb`.
+    /// Builds the process environment for privileged commands running inside the rootless prefix.
     public static func make(base: [String: String] = ProcessInfo.processInfo.environment) -> [String: String] {
         var env = base
         let jb = RootlessPaths.effectivePrefix

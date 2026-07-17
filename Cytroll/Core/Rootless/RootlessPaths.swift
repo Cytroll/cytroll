@@ -1,17 +1,23 @@
 import Foundation
 
 /// Single source of truth for all rootless jailbreak paths.
-/// Procursus installs into `/var/jb` (resolved as `/private/var/jb` on iOS).
-/// Never reference signed system volume paths (SSV) from here.
+/// Cytroll installs into `/var/mobile/.lara_jb` (resolved as
+/// `/private/var/mobile/.lara_jb` on iOS). Never reference signed system
+/// volume paths (SSV) from here.
 public enum RootlessPaths {
 
     // MARK: - Prefix
 
-    /// Logical rootless prefix used by Procursus APT/dpkg.
-    public static let prefix = "/var/jb"
+    /// Logical rootless prefix used by APT/dpkg under Cytroll.
+    public static let prefix = "/var/mobile/.lara_jb"
 
     /// iOS-resolved physical path (symlink target).
-    public static let privatePrefix = "/private/var/jb"
+    public static let privatePrefix = "/private/var/mobile/.lara_jb"
+
+    /// Upstream Procursus archives still unpack as `var/jb/...`.
+    /// BootstrapManager relocates that tree here immediately after extract.
+    public static let legacyProcursusPrefix = "/var/jb"
+    public static let legacyProcursusPrivatePrefix = "/private/var/jb"
 
     /// Active prefix — prefers the path that actually exists on disk.
     public static var effectivePrefix: String {
@@ -63,9 +69,9 @@ public enum RootlessPaths {
 
     // MARK: - Per-app tweak injection (AppInjectionManager)
 
-    /// Cytroll's own private state directory — lives fully inside `/var/jb`,
-    /// never touches any third-party app bundle except through the narrow,
-    /// audited `AppInjectionManager` pipeline.
+    /// Cytroll's own private state directory — lives fully inside the
+    /// rootless prefix, never touches any third-party app bundle except
+    /// through the narrow, audited `AppInjectionManager` pipeline.
     public static var cytrollStateDir: String { jb("var", "cytroll") }
     public static var injectionBackupsDir: String { jb("var", "cytroll", "backups") }
     public static var injectionRecordsFile: String { jb("var", "cytroll", "injections.json") }
@@ -147,17 +153,16 @@ public enum RootlessPaths {
 
     // MARK: - Environment health
 
-    /// `/var/jb` is the same standard rootless prefix used by Dopamine and
-    /// other modern jailbreaks — not something Cytroll necessarily created
-    /// itself. A bare directory-exists check can't tell "a real, working
-    /// Procursus environment (ours or someone else's)" apart from "an empty
-    /// or half-extracted folder left over from a failed install". `health`
-    /// actually probes for the binaries/database a rootless env needs.
+    /// Rootless prefix health under `/var/mobile/.lara_jb`. A bare
+    /// directory-exists check can't tell "a real, working Procursus
+    /// environment" apart from "an empty or half-extracted folder left
+    /// over from a failed install". `health` probes for the binaries /
+    /// database a rootless env needs.
     public enum BootstrapHealth: Equatable {
-        /// No `/var/jb` at all — offer a fresh install.
+        /// No rootless tree at all — offer a fresh install.
         case missing
         /// Directory exists and the core apt/dpkg toolchain + database are
-        /// present — safe to use as-is, regardless of who created it.
+        /// present — safe to use as-is.
         case healthy
         /// Directory exists but is missing pieces a working environment
         /// needs (interrupted extraction, corrupted install, etc.) —

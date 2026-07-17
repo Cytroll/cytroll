@@ -25,7 +25,7 @@ Run `Scripts/fetch-binaries.sh` on macOS to download tools and bootstrap archive
 
 ## Security
 
-- All jailbreak files install only under `/var/jb`
+- All jailbreak files install only under `/var/mobile/.lara_jb`
 - `cytrollhelper` allowlists executables and blocks SSV paths
 - Never place system binaries from `/System` here
 - `insert_dylib` is compiled from vendored source (not downloaded as a

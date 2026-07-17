@@ -2,7 +2,9 @@ import SwiftUI
 
 public struct HomeView: View {
     @StateObject private var themeManager = ThemeManager.shared
-    @StateObject private var bootstrapManager = BootstrapManager.shared
+    // Singleton — ObservedObject (not StateObject) so we always track the shared instance.
+    @ObservedObject private var bootstrapManager = BootstrapManager.shared
+    @State private var showingBootstrapConsole = false
     
     public init() {}
     
@@ -29,6 +31,14 @@ public struct HomeView: View {
                 }
             }
             .navigationTitle("Cytroll")
+            .navigationBarTitleDisplayMode(.inline)
+            .fullScreenCover(isPresented: $showingBootstrapConsole) {
+                LiveConsoleView(
+                    isPresented: $showingBootstrapConsole,
+                    isRunning: bootstrapManager.isBusy,
+                    title: bootstrapManager.isDownloading ? "Downloading Bootstrap" : "Bootstrap"
+                )
+            }
         }
     }
     
@@ -53,6 +63,7 @@ public struct HomeView: View {
                 .frame(width: 72, height: 72)
                 .scaleEffect(markAppeared ? 1 : 0.86)
                 .opacity(markAppeared ? 1 : 0)
+                .allowsHitTesting(false)
             
             VStack(spacing: 8) {
                 Text("Welcome to Cytroll")
@@ -88,6 +99,12 @@ public struct HomeView: View {
                         .foregroundColor(themeManager.currentTheme.textSecondary)
                         .multilineTextAlignment(.center)
                         .lineLimit(3)
+
+                    Button("Open Live Console") {
+                        showingBootstrapConsole = true
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(themeManager.currentTheme.accent)
                 }
                 .padding(.top, 4)
             } else {
@@ -124,51 +141,60 @@ public struct HomeView: View {
     @ViewBuilder
     private var bootstrapPrimaryButton: some View {
         if !hasLocalArchive {
-            Button(action: {
-                withAnimation {
-                    bootstrapManager.downloadBootstrapOnly(version: selectedBootstrapVersion)
+            VStack(spacing: 8) {
+                bootstrapCTAButton(
+                    title: "Bootstrap",
+                    color: themeManager.currentTheme.accent
+                ) {
+                    showingBootstrapConsole = true
+                    // No local archive — download from Procursus, then extract
+                    // into /var/mobile/.lara_jb (full real install, not cache-only).
+                    bootstrapManager.setupBootstrap(version: selectedBootstrapVersion)
                 }
-            }) {
-                Text("Download Bootstrap")
-                    .font(.headline.bold())
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(themeManager.currentTheme.accent)
-                    .cornerRadius(14)
+                Text("Downloads from apt.procurs.us, then installs into \(RootlessPaths.prefix)")
+                    .font(.caption2)
+                    .foregroundColor(themeManager.currentTheme.textSecondary)
+                    .multilineTextAlignment(.center)
             }
-            .disabled(bootstrapManager.isBusy)
         } else if bootstrapManager.health == .broken {
-            Button(action: {
-                withAnimation {
-                    bootstrapManager.repairFromLocalArchive(version: selectedBootstrapVersion)
-                }
-            }) {
-                Text("Repair Bootstrap")
-                    .font(.headline.bold())
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.orange)
-                    .cornerRadius(14)
+            bootstrapCTAButton(
+                title: "Repair Bootstrap",
+                color: .orange
+            ) {
+                showingBootstrapConsole = true
+                // Prefer local; fall back to download if the archive vanished.
+                bootstrapManager.repairBootstrap(version: selectedBootstrapVersion)
             }
-            .disabled(bootstrapManager.isBusy)
         } else {
-            Button(action: {
-                withAnimation {
-                    bootstrapManager.installFromLocalArchive(version: selectedBootstrapVersion)
-                }
-            }) {
-                Text("Bootstrap")
-                    .font(.headline.bold())
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(themeManager.currentTheme.accent)
-                    .cornerRadius(14)
+            bootstrapCTAButton(
+                title: "Bootstrap",
+                color: themeManager.currentTheme.accent
+            ) {
+                showingBootstrapConsole = true
+                // Local first, network fallback — same reliable path as before the split.
+                bootstrapManager.setupBootstrap(version: selectedBootstrapVersion)
             }
-            .disabled(bootstrapManager.isBusy)
         }
+    }
+
+    private func bootstrapCTAButton(
+        title: String,
+        color: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.headline.bold())
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(color)
+                .cornerRadius(14)
+                // Entire colored rect must be tappable — not just the text glyphs.
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(bootstrapManager.isBusy)
     }
 
     private var statusColor: Color {

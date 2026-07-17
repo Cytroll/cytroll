@@ -5,7 +5,7 @@ Architecture: iphoneos-arm64
 Maintainer: Cytroll Team <cytroll@local>
 Depends: firmware (>= 15.0), ellekit
 Description: Rootless package manager and bootstrap manager for TrollStore.
- Cytroll installs a Procursus environment into /var/jb and provides
- native APT/dpkg management without modifying the signed system volume.
+ Cytroll installs a Procursus environment into /var/mobile/.lara_jb and
+ provides native APT/dpkg management without modifying the signed system volume.
 Section: Applications
 Priority: optional
