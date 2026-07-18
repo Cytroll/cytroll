@@ -45,7 +45,13 @@ public final class QueueManager: ObservableObject {
     /// abort before dpkg/apt is ever touched.
     public func confirmAndExecute(completion: @escaping (Bool) -> Void) {
         guard !queue.isEmpty, !isProcessing else { return }
-        
+
+        guard CytrollOperationGate.shared.tryAcquire(.packageTransaction) else {
+            console.log("Queue deferred — system busy (\(CytrollOperationGate.shared.busyReason ?? "unknown")).")
+            completion(false)
+            return
+        }
+
         isProcessing = true
         console.clear() // Clear logs from previous runs
 
@@ -58,6 +64,7 @@ public final class QueueManager: ObservableObject {
                 console.log("CONFLICT: \(issue.message)")
             }
             isProcessing = false
+            CytrollOperationGate.shared.release(.packageTransaction)
             completion(false)
             return
         }
@@ -91,6 +98,12 @@ public final class QueueManager: ObservableObject {
                 TweakInjectionManager.shared.refreshTweaks()
             }
 
+            // Stability: surface a broken rootless tree after apt/dpkg work.
+            BootstrapManager.shared.checkBootstrapStatus()
+            if BootstrapManager.shared.health == .broken {
+                self.console.log("WARNING: /var/jb looks incomplete after the transaction — use Repair Bootstrap.")
+            }
+
             // Record every queued item in the real activity log — `self.queue`
             // still holds the pre-transaction items here (it's only cleared
             // in the delayed block below), so this always reflects exactly
@@ -106,6 +119,7 @@ public final class QueueManager: ObservableObject {
                     self.queue.removeAll()
                 }
                 self.isProcessing = false
+                CytrollOperationGate.shared.release(.packageTransaction)
                 completion(success)
                 
                 // End immunity after everything is safely completed

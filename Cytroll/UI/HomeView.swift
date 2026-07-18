@@ -225,7 +225,9 @@ public struct HomeView: View {
     /// Smart Maintenance and a queued install/remove transaction both drive
     /// dpkg — running them at the same time risks two dpkg processes
     /// fighting over its lock (or a package half-configured mid-transaction).
-    private var isSystemBusy: Bool { queueManager.isProcessing || diagnostics.isRepairing }
+    private var isSystemBusy: Bool {
+        queueManager.isProcessing || diagnostics.isRepairing || CytrollOperationGate.shared.isBusy
+    }
 
     private var smartDashboard: some View {
         VStack(alignment: .leading, spacing: 16) {

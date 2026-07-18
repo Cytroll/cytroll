@@ -606,7 +606,9 @@ public final class AppInjectionManager: ObservableObject {
     /// Care callers (Auto Re-inject / Safe Mode) pass `allowCareOwner: true`
     /// so their nested rebuild is permitted while they hold the gate.
     private func shouldRefuseForForeignGate(allowCareOwner: Bool) -> Bool {
-        if QueueManager.shared.isProcessing || DiagnosticsManager.shared.isRepairing {
+        if QueueManager.shared.isProcessing
+            || DiagnosticsManager.shared.isRepairing
+            || BootstrapManager.shared.isBusy {
             return true
         }
         guard let owner = CytrollOperationGate.shared.currentOwner else { return false }
@@ -614,7 +616,7 @@ public final class AppInjectionManager: ObservableObject {
             switch owner {
             case .autoReinject, .safeMode, .injection, .appManager:
                 return false
-            case .packageTransaction, .dataVault, .diagnostics:
+            case .packageTransaction, .dataVault, .diagnostics, .bootstrap:
                 return true
             }
         }

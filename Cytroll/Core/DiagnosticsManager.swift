@@ -13,6 +13,11 @@ public final class DiagnosticsManager: ObservableObject {
 
     public func configureDpkg(completion: @escaping (Bool) -> Void) {
         guard !isRepairing else { return }
+        guard CytrollOperationGate.shared.tryAcquire(.diagnostics) else {
+            console.log("Diagnostics deferred — system busy (\(CytrollOperationGate.shared.busyReason ?? "unknown")).")
+            completion(false)
+            return
+        }
         isRepairing = true
         console.log("Starting dpkg --configure -a")
 
@@ -23,6 +28,8 @@ public final class DiagnosticsManager: ObservableObject {
             DispatchQueue.main.async {
                 self.console.log(success ? "dpkg configured successfully." : "dpkg configure failed.")
                 self.isRepairing = false
+                CytrollOperationGate.shared.release(.diagnostics)
+                BootstrapManager.shared.checkBootstrapStatus()
                 completion(success)
             }
         }
@@ -30,6 +37,11 @@ public final class DiagnosticsManager: ObservableObject {
 
     public func fixBrokenPackages(completion: @escaping (Bool) -> Void) {
         guard !isRepairing else { return }
+        guard CytrollOperationGate.shared.tryAcquire(.diagnostics) else {
+            console.log("Diagnostics deferred — system busy (\(CytrollOperationGate.shared.busyReason ?? "unknown")).")
+            completion(false)
+            return
+        }
         isRepairing = true
         console.log("Running apt --fix-broken install")
 
@@ -40,6 +52,8 @@ public final class DiagnosticsManager: ObservableObject {
             DispatchQueue.main.async {
                 self.console.log(success ? "Broken packages fixed." : "Fix broken packages failed.")
                 self.isRepairing = false
+                CytrollOperationGate.shared.release(.diagnostics)
+                BootstrapManager.shared.checkBootstrapStatus()
                 completion(success)
             }
         }
@@ -49,6 +63,11 @@ public final class DiagnosticsManager: ObservableObject {
     /// Live Console stays open for the whole protocol.
     public func runFullDiagnostics(completion: @escaping (Bool) -> Void) {
         guard !isRepairing else { return }
+        guard CytrollOperationGate.shared.tryAcquire(.diagnostics) else {
+            console.log("Diagnostics deferred — system busy (\(CytrollOperationGate.shared.busyReason ?? "unknown")).")
+            completion(false)
+            return
+        }
         isRepairing = true
         console.log("Initiating full repair protocol...")
 
@@ -66,6 +85,11 @@ public final class DiagnosticsManager: ObservableObject {
             self.console.log("Full repair finished.")
             DispatchQueue.main.async {
                 self.isRepairing = false
+                CytrollOperationGate.shared.release(.diagnostics)
+                BootstrapManager.shared.checkBootstrapStatus()
+                if BootstrapManager.shared.health == .broken {
+                    self.console.log("WARNING: /var/jb still incomplete after repair — use Repair Bootstrap.")
+                }
                 completion(dpkgSuccess && aptSuccess)
             }
         }

@@ -11,7 +11,9 @@ public struct SettingsView: View {
 
     /// Diagnostics/removal and a queued install/remove transaction both
     /// drive dpkg/apt directly — never let them run at the same time.
-    private var isSystemBusy: Bool { queueManager.isProcessing || diagnostics.isRepairing }
+    private var isSystemBusy: Bool {
+        queueManager.isProcessing || diagnostics.isRepairing || CytrollOperationGate.shared.isBusy
+    }
     @State private var showingRemoveAlert = false
     @State private var isRemoving = false
     

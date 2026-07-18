@@ -95,6 +95,10 @@ public final class BootstrapManager: NSObject, ObservableObject {
             console.log("Bootstrap download ignored — already busy.")
             return
         }
+        guard CytrollOperationGate.shared.tryAcquire(.bootstrap) else {
+            console.log("Bootstrap download deferred — system busy (\(CytrollOperationGate.shared.busyReason ?? "unknown")).")
+            return
+        }
 
         backgroundTaskID = UIApplication.shared.beginBackgroundTask {
             self.console.log("WARNING: iOS forced background termination!")
@@ -187,6 +191,7 @@ public final class BootstrapManager: NSObject, ObservableObject {
                 self.isDownloading = false
                 self.refreshLocalArchiveAvailability()
                 self.endBackgroundImmunity()
+                CytrollOperationGate.shared.release(.bootstrap)
             }
         } catch {
             finishDownload(success: false, reason: "Could not save archive: \(error.localizedDescription)")
@@ -202,6 +207,7 @@ public final class BootstrapManager: NSObject, ObservableObject {
             if !success { self.progress = 0.0 }
             self.refreshLocalArchiveAvailability()
             self.endBackgroundImmunity()
+            CytrollOperationGate.shared.release(.bootstrap)
         }
     }
 
@@ -210,6 +216,10 @@ public final class BootstrapManager: NSObject, ObservableObject {
     private func beginLocalInstall(version: BootstrapVersion, preserveExisting: Bool) {
         guard !isBusy else {
             console.log("Bootstrap ignored — already busy.")
+            return
+        }
+        guard CytrollOperationGate.shared.tryAcquire(.bootstrap) else {
+            console.log("Bootstrap deferred — system busy (\(CytrollOperationGate.shared.busyReason ?? "unknown")).")
             return
         }
 
@@ -263,6 +273,10 @@ public final class BootstrapManager: NSObject, ObservableObject {
     private func beginInstallWithNetworkFallback(version: BootstrapVersion, preserveExisting: Bool) {
         guard !isBusy else {
             console.log("Bootstrap ignored — already busy.")
+            return
+        }
+        guard CytrollOperationGate.shared.tryAcquire(.bootstrap) else {
+            console.log("Bootstrap deferred — system busy (\(CytrollOperationGate.shared.busyReason ?? "unknown")).")
             return
         }
 
@@ -504,16 +518,43 @@ public final class BootstrapManager: NSObject, ObservableObject {
         // whatever (empty) state it held before the rootless env existed.
         PackageIndexStore.shared.refresh()
 
+        // Stability: refuse to call the install "done" if apt/dpkg aren't there.
+        if !verifyBootstrapHealth() {
+            failBootstrap(reason: "Extract finished but /var/jb is incomplete (missing apt/dpkg). Use Repair Bootstrap.")
+            return
+        }
+
         // Drop the multi‑MB download cache + temp tars — /var/jb is enough.
         purgeAllBootstrapCaches()
 
         DispatchQueue.main.async {
             self.progress = 1.0
-            self.console.log("Bootstrap ready at \(RootlessPaths.effectivePrefix)")
+            self.console.log("Bootstrap ready at \(RootlessPaths.effectivePrefix) — health check passed.")
             self.isInstalling = false
             self.checkBootstrapStatus()
             self.endBackgroundImmunity()
+            CytrollOperationGate.shared.release(.bootstrap)
         }
+    }
+
+    /// Logs which core tools are present and returns true only when healthy.
+    private func verifyBootstrapHealth() -> Bool {
+        let fm = FileManager.default
+        let checks: [(String, String)] = [
+            ("dpkg", RootlessPaths.dpkg),
+            ("apt-get", RootlessPaths.aptGet),
+            ("dpkg status", RootlessPaths.dpkgStatus),
+        ]
+        var ok = true
+        for (label, path) in checks {
+            if fm.fileExists(atPath: path) {
+                console.log("Health OK: \(label) at \(path)")
+            } else {
+                console.log("Health MISSING: \(label) (\(path))")
+                ok = false
+            }
+        }
+        return ok
     }
 
     private func runPrepBootstrapScript() {
@@ -552,6 +593,7 @@ public final class BootstrapManager: NSObject, ObservableObject {
             self.progress = 0.0
             self.checkBootstrapStatus()
             self.endBackgroundImmunity()
+            CytrollOperationGate.shared.release(.bootstrap)
         }
     }
 
