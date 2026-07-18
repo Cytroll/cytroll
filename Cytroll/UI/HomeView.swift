@@ -217,7 +217,10 @@ public struct HomeView: View {
     @StateObject private var queueManager = QueueManager.shared
     @StateObject private var diagnostics = DiagnosticsManager.shared
     @StateObject private var packageIndex = PackageIndexStore.shared
+    @ObservedObject private var jailbreakUtils = JailbreakUtilities.shared
     @State private var showingMaintenanceConsole = false
+    @State private var showingEnterSafeModeConfirm = false
+    @State private var showingExitSafeModeConfirm = false
 
     /// Smart Maintenance and a queued install/remove transaction both drive
     /// dpkg — running them at the same time risks two dpkg processes
@@ -232,9 +235,50 @@ public struct HomeView: View {
                 .tracking(1.5)
             
             HStack(spacing: 16) {
-                DashboardMetric(title: "Status", value: "Active", icon: "checkmark.circle.fill", color: .green)
+                DashboardMetric(
+                    title: "Status",
+                    value: jailbreakUtils.tweaksEnabled ? "Active" : "Safe Mode",
+                    icon: jailbreakUtils.tweaksEnabled ? "checkmark.circle.fill" : "shield.fill",
+                    color: jailbreakUtils.tweaksEnabled ? .green : .orange
+                )
                 DashboardMetric(title: "Packages", value: "\(packageIndex.installedPackages.count)", icon: "shippingbox.fill", color: themeManager.currentTheme.accent)
             }
+
+            // Global Safe Mode — first-class stability escape hatch.
+            Button(action: {
+                if jailbreakUtils.tweaksEnabled {
+                    showingEnterSafeModeConfirm = true
+                } else {
+                    showingExitSafeModeConfirm = true
+                }
+            }) {
+                HStack(spacing: 12) {
+                    Image(systemName: jailbreakUtils.tweaksEnabled ? "shield.slash.fill" : "shield.checkered")
+                        .font(.title3)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(jailbreakUtils.isUpdatingSafeMode
+                              ? "Updating…"
+                              : (jailbreakUtils.tweaksEnabled ? "Enter Safe Mode" : "Safe Mode Active"))
+                            .font(.headline)
+                        Text(jailbreakUtils.tweaksEnabled
+                              ? "Disable all Substrate/ElleKit tweaks instantly"
+                              : "Tweaks are off — tap to re-enable")
+                            .font(.caption2)
+                            .opacity(0.9)
+                    }
+                    Spacer()
+                    if jailbreakUtils.isUpdatingSafeMode {
+                        ProgressView().tint(.white)
+                    }
+                }
+                .foregroundColor(.white)
+                .padding()
+                .background(jailbreakUtils.tweaksEnabled ? Color.orange : Color.green.opacity(0.85))
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            .disabled(jailbreakUtils.isUpdatingSafeMode)
+            .contentShape(Rectangle())
             
             NavigationLink(destination: AppManagerView()) {
                 HStack {
@@ -288,6 +332,7 @@ public struct HomeView: View {
         .glassCard(theme: themeManager.currentTheme)
         .onAppear {
             packageIndex.ensureLoaded()
+            jailbreakUtils.refreshTweaksState()
             // Keep essential repos present even if the user installed an
             // older Cytroll build that only seeded Procursus (+ ElleKit).
             RepositoryManager.shared.ensureEssentialSources()
@@ -298,6 +343,36 @@ public struct HomeView: View {
                 isRunning: diagnostics.isRepairing,
                 title: "Smart Maintenance"
             )
+        }
+        .confirmationDialog(
+            "Enter Global Safe Mode?",
+            isPresented: $showingEnterSafeModeConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Safe Mode + Respring", role: .destructive) {
+                jailbreakUtils.enterGlobalSafeMode(thenRespring: true)
+            }
+            Button("Safe Mode Only") {
+                jailbreakUtils.enterGlobalSafeMode(thenRespring: false)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Disables all Substrate/ElleKit tweaks via \(RootlessPaths.disableTweaksFlag). Respring applies it immediately.")
+        }
+        .confirmationDialog(
+            "Exit Safe Mode?",
+            isPresented: $showingExitSafeModeConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Enable Tweaks + Respring") {
+                jailbreakUtils.exitGlobalSafeMode(thenRespring: true)
+            }
+            Button("Enable Tweaks Only") {
+                jailbreakUtils.exitGlobalSafeMode(thenRespring: false)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Re-enables global tweak injection. Respring to load tweaks again.")
         }
     }
     

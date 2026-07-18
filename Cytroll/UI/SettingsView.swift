@@ -7,7 +7,7 @@ public struct SettingsView: View {
     @StateObject private var queueManager = QueueManager.shared
     @StateObject private var pmSettings = PackageManagerSettings.shared
     @StateObject private var careSettings = CytrollCareSettings.shared
-    @State private var tweaksEnabled: Bool = JailbreakUtilities.shared.areTweaksEnabled()
+    @ObservedObject private var jailbreakUtils = JailbreakUtilities.shared
 
     /// Diagnostics/removal and a queued install/remove transaction both
     /// drive dpkg/apt directly — never let them run at the same time.
@@ -112,7 +112,13 @@ public struct SettingsView: View {
 
                     // MARK: Tweak Management
                     Section(header: Text("Tweak Management").foregroundColor(themeManager.currentTheme.textSecondary)) {
-                        Toggle(isOn: $tweaksEnabled) {
+                        Toggle(isOn: Binding(
+                            get: { jailbreakUtils.tweaksEnabled },
+                            set: { newValue in
+                                guard newValue != jailbreakUtils.tweaksEnabled else { return }
+                                jailbreakUtils.setTweaksEnabled(newValue)
+                            }
+                        )) {
                             HStack {
                                 Image(systemName: "puzzlepiece.extension.fill")
                                     .foregroundColor(themeManager.currentTheme.accent)
@@ -121,9 +127,7 @@ public struct SettingsView: View {
                             }
                         }
                         .tint(themeManager.currentTheme.accent)
-                        .onChange(of: tweaksEnabled) { newValue in
-                            JailbreakUtilities.shared.setTweaksEnabled(newValue)
-                        }
+                        .disabled(jailbreakUtils.isUpdatingSafeMode)
 
                         Toggle(isOn: $careSettings.autoReinjectEnabled) {
                             HStack {
@@ -153,18 +157,19 @@ public struct SettingsView: View {
                             }
                         }
                         
-                        if !tweaksEnabled {
-                            Text("Global Safe Mode: Substrate/ElleKit tweaks are disabled until you reboot userspace.")
+                        if !jailbreakUtils.tweaksEnabled {
+                            Text("Global Safe Mode: Substrate/ElleKit tweaks are disabled. Respring (or reboot userspace) to apply fully.")
                                 .font(.caption)
                                 .foregroundColor(.orange)
                                 .padding(.vertical, 4)
                         }
                     }
                     .listRowBackground(themeManager.currentTheme.cardBackground.opacity(0.6))
+                    .onAppear { jailbreakUtils.refreshTweaksState() }
                     
                     // MARK: Utilities
                     Section(header: Text("Utilities").foregroundColor(themeManager.currentTheme.textSecondary)) {
-                        Button(action: { JailbreakUtilities.shared.respring() }) {
+                        Button(action: { jailbreakUtils.respring() }) {
                             HStack {
                                 Image(systemName: "arrow.triangle.2.circlepath")
                                 Text("Respring (sbreload)")
