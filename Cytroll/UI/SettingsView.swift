@@ -197,6 +197,13 @@ public struct SettingsView: View {
                     
                     // MARK: Advanced Diagnostics
                     Section(header: Text("System Diagnostics").foregroundColor(themeManager.currentTheme.textSecondary)) {
+                        NavigationLink(destination: StorageHealthView()) {
+                            HStack {
+                                Image(systemName: "internaldrive.fill")
+                                Text("Storage & Health")
+                            }
+                        }
+
                         Button(action: {
                             guard !isSystemBusy else { return }
                             showingDiagnosticsConsole = true

@@ -298,6 +298,22 @@ public struct HomeView: View {
                 .cornerRadius(12)
             }
 
+            NavigationLink(destination: StorageHealthView()) {
+                HStack {
+                    Image(systemName: "internaldrive.fill")
+                        .font(.title3)
+                    Text("Storage & Health")
+                        .font(.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.bold))
+                }
+                .foregroundColor(themeManager.currentTheme.accent)
+                .padding()
+                .background(themeManager.currentTheme.accent.opacity(0.15))
+                .cornerRadius(12)
+            }
+
             Button(action: {
                 guard !isSystemBusy else { return }
                 ConsoleManager.shared.clear()
